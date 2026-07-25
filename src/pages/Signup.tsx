@@ -34,10 +34,13 @@ export default function Signup() {
     });
   };
 
-  const handleGoogleSignup = () => {
-    const apiBase = import.meta.env.VITE_API_URL || '/api';
-    window.location.href = `${apiBase}/auth/google`;
-  };
+ const handleGoogleSignup = () => {
+  const apiBase =
+    import.meta.env.VITE_API_BASE_URL ||
+    'https://motohippi-backend-production.up.railway.app/api';
+
+  window.location.href = `${apiBase}/auth/google`;
+};
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8 relative overflow-hidden">
