@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, CheckCircle2, RefreshCw, ArrowLeft } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
 
 export default function VerifyEmail() {
   const { user, token, login } = useAuth();
@@ -18,6 +18,8 @@ export default function VerifyEmail() {
   const [verified, setVerified] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const pendingEmail = sessionStorage.getItem('pendingEmail') || user?.email;
+
   // Start cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -26,19 +28,17 @@ export default function VerifyEmail() {
     }
   }, [resendCooldown]);
 
-  // Auto-send OTP on mount
-  useEffect(() => {
-    if (token) sendOtp();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const sendOtp = async () => {
-    if (!token) return;
+    const targetEmail = pendingEmail || user?.email;
+    if (!targetEmail && !token) return;
     setResending(true);
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
       await fetch(`${API_BASE}/auth/send-otp`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers,
+        body: JSON.stringify({ email: targetEmail }),
       });
       setResendCooldown(60);
     } catch {
@@ -76,20 +76,24 @@ export default function VerifyEmail() {
   };
 
   const submitCode = async (fullCode: string) => {
-    if (!token) return;
+    const targetEmail = pendingEmail || user?.email;
     setLoading(true);
     setError('');
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(`${API_BASE}/auth/verify-otp`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: fullCode }),
+        headers,
+        body: JSON.stringify({ email: targetEmail, code: fullCode }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Invalid code'); setLoading(false); return; }
       setVerified(true);
-      // Re-login with refreshed token that includes verified status
-      if (data.token) login(data.token);
+      if (data.token) {
+        sessionStorage.removeItem('pendingEmail');
+        login(data.token);
+      }
       setTimeout(() => setLocation('/home'), 1800);
     } catch {
       setError('Verification failed. Please try again.');
@@ -130,7 +134,7 @@ export default function VerifyEmail() {
               <h1 className="text-2xl font-black text-white">Check your email</h1>
               <p className="text-muted-foreground text-sm mt-1">
                 We sent a 6-digit code to{' '}
-                <span className="text-white font-medium">{user?.email || 'your email'}</span>
+                <span className="text-white font-medium">{pendingEmail || 'your email'}</span>
               </p>
             </div>
           </div>

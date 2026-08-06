@@ -24,8 +24,11 @@ export default function Signup() {
     setErrorMsg('');
     signupMutation.mutate({ data: { name, email, password, phone: phone || undefined } }, {
       onSuccess: (data: any) => {
-        login(data.token);
-        // Always go to email verification after signup
+        if (data.email) {
+          sessionStorage.setItem('pendingEmail', data.email);
+        } else {
+          sessionStorage.setItem('pendingEmail', email);
+        }
         setLocation('/verify-email');
       },
       onError: (error: any) => {
