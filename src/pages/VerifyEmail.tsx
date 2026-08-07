@@ -102,7 +102,7 @@ export default function VerifyEmail() {
         sessionStorage.removeItem('pendingEmail');
         login(data.token);
       }
-      setTimeout(() => setLocation('/home'), 1800);
+      setLocation('/home');
     } catch {
       setError('Verification failed. Please try again.');
     } finally {
