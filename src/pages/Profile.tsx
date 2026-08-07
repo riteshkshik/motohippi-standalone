@@ -102,7 +102,22 @@ function ImageEditModal({
   const handleSave = async () => {
     if (!url) return;
     setSaving(true);
-    try { await onSave(url); onClose(); } finally { setSaving(false); }
+    try {
+      let finalUrl = url;
+      if (url.startsWith('data:')) {
+        const uploadRes = await authFetch('/api/upload', {
+          method: 'POST',
+          body: JSON.stringify({ image: url, folder: isAvatar ? 'avatars' : 'covers' }),
+        });
+        if (uploadRes?.url) {
+          finalUrl = uploadRes.url;
+        }
+      }
+      await onSave(finalUrl);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
