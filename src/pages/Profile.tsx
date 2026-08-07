@@ -4,7 +4,10 @@ import { useGetMyProfile, useUpdateMyProfile, useGetFeed, useDeletePost } from '
 // authenticated fetch helper (mirrors how api-client-react works internally)
 async function authFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('motohippi_token');
-  const res = await fetch(url, {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const cleanBase = apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+  const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
+  const res = await fetch(fullUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
