@@ -5,7 +5,15 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Mail, CheckCircle2, RefreshCw, ArrowLeft } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const base = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+    return base.endsWith('/api') ? base : `${base}/api`;
+  }
+  return '/api';
+};
+const API_BASE = getApiBase();
 
 export default function VerifyEmail() {
   const { user, token, login } = useAuth();
