@@ -10,6 +10,7 @@ import Landing from '@/pages/Landing';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import VerifyEmail from '@/pages/VerifyEmail';
+import ForgotPassword from '@/pages/ForgotPassword';
 import Onboarding from '@/pages/Onboarding';
 import Home from '@/pages/Home';
 import Discover from '@/pages/Discover';
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/signup" component={Signup} />
         <Route path="/verify-email" component={VerifyEmail} />
+        <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/onboarding" component={Onboarding} />
 
         {/* Protected Routes */}

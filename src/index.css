@@ -209,3 +209,14 @@
     0 0 32px 10px rgba(37, 211, 102, 0.55),
     0 4px 40px    rgba(37, 211, 102, 0.40) !important;
 }
+
+/* ── Override Browser Autofill White/Blue Background ────────────────────── */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0a0a0a inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
