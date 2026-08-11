@@ -12,8 +12,15 @@ export interface ChatMessage {
 export function useWebSocketChat(token: string | null, onNewMessage?: (msg: ChatMessage) => void) {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const onNewMessageRef = useRef(onNewMessage);
+
+  // Keep callback ref updated without triggering reconnect loops
+  useEffect(() => {
+    onNewMessageRef.current = onNewMessage;
+  }, [onNewMessage]);
 
   const getWsUrl = useCallback(() => {
+    if (!token) return null;
     let apiBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
     if (!apiBase.startsWith('http')) {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -26,24 +33,25 @@ export function useWebSocketChat(token: string | null, onNewMessage?: (msg: Chat
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
-
     const wsUrl = getWsUrl();
+    if (!token || !wsUrl) return;
+
+    let isSubscribed = true;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('⚡ Connected to Chat WebSocket');
-      setIsConnected(true);
+      if (isSubscribed) {
+        console.log('⚡ Connected to Chat WebSocket');
+        setIsConnected(true);
+      }
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'new_message' && data.message) {
-          if (onNewMessage) {
-            onNewMessage(data.message);
-          }
+          onNewMessageRef.current?.(data.message);
         }
       } catch (err) {
         console.error('❌ Failed to parse WebSocket message', err);
@@ -51,18 +59,25 @@ export function useWebSocketChat(token: string | null, onNewMessage?: (msg: Chat
     };
 
     ws.onclose = () => {
-      console.log('🔌 WebSocket disconnected');
-      setIsConnected(false);
+      if (isSubscribed) {
+        console.log('🔌 WebSocket disconnected');
+        setIsConnected(false);
+      }
     };
 
     ws.onerror = (err) => {
-      console.error('⚠️ WebSocket error:', err);
+      if (isSubscribed) {
+        console.error('⚠️ WebSocket error:', err);
+      }
     };
 
     return () => {
-      ws.close();
+      isSubscribed = false;
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+      }
     };
-  }, [token, getWsUrl, onNewMessage]);
+  }, [token, getWsUrl]);
 
   const sendMessage = useCallback((conversationId: number, content: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
