@@ -91,20 +91,50 @@ function ImageEditModal({
 }: { type: 'avatar' | 'cover'; currentUrl?: string | null; onSave: (url: string) => Promise<void>; onClose: () => void }) {
   const [url, setUrl] = useState(currentUrl || '');
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const isAvatar = type === 'avatar';
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setErrorMsg('');
+    const MAX_SIZE_BYTES = 3 * 1024 * 1024; // 3 MB
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrorMsg(`File size exceeds 3 MB limit. (Selected: ${(file.size / (1024 * 1024)).toFixed(1)} MB)`);
+      if (e.target) e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => setUrl(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
+  const handleUrlChange = (val: string) => {
+    setUrl(val);
+    setErrorMsg('');
+    if (val.startsWith('data:')) {
+      const base64Data = val.includes(',') ? val.split(',')[1] : val;
+      const estimatedBytes = (base64Data.length * 3) / 4;
+      if (estimatedBytes > 3 * 1024 * 1024) {
+        setErrorMsg(`Image size exceeds 3 MB limit. (Pasted: ${(estimatedBytes / (1024 * 1024)).toFixed(1)} MB)`);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!url) return;
+    if (url.startsWith('data:')) {
+      const base64Data = url.includes(',') ? url.split(',')[1] : url;
+      const estimatedBytes = (base64Data.length * 3) / 4;
+      if (estimatedBytes > 3 * 1024 * 1024) {
+        setErrorMsg(`Image size exceeds 3 MB limit. (Size: ${(estimatedBytes / (1024 * 1024)).toFixed(1)} MB)`);
+        return;
+      }
+    }
+
     setSaving(true);
+    setErrorMsg('');
     try {
       let finalUrl = url;
       if (url.startsWith('data:')) {
@@ -118,6 +148,8 @@ function ImageEditModal({
       }
       await onSave(finalUrl);
       onClose();
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to upload image');
     } finally {
       setSaving(false);
     }
@@ -149,15 +181,21 @@ function ImageEditModal({
           className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/8 transition-all text-sm font-semibold"
         >
           <Upload size={18} className="text-primary" />
-          Upload from device
+          Upload from device (Max 3 MB)
         </button>
+
+        {errorMsg && (
+          <p className="text-xs text-red-400 text-center font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-3 rounded-xl">
+            {errorMsg}
+          </p>
+        )}
 
         {/* Or URL */}
         <div className="space-y-2">
           <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Or paste image URL</label>
           <Input
             value={url}
-            onChange={e => setUrl(e.target.value)}
+            onChange={e => handleUrlChange(e.target.value)}
             placeholder="https://..."
             className="bg-white/5 border-white/10 focus:border-primary/50"
           />
