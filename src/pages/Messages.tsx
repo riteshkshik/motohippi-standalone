@@ -1,19 +1,167 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGetConversations, useListMessages, useSendMessage, useGetMatches } from '@workspace/api-client-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X } from 'lucide-react';
+import { Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X, Heart, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useWebSocketChat, ChatMessage } from '@/hooks/useWebSocketChat';
+
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const base = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+    return base.endsWith('/api') ? base : `${base}/api`;
+  }
+  return '/api';
+};
+const API_BASE = getApiBase();
+
+const getToken = () =>
+  localStorage.getItem('motohippi_token') ||
+  sessionStorage.getItem('motohippi_token') ||
+  localStorage.getItem('token') ||
+  sessionStorage.getItem('token') ||
+  '';
+
+const getAuthHeaders = (): Record<string, string> => {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// ─── Pending Ride Request Card Banner ──────────────────────────────────────────
+function PendingRequestsBanner({ onAccept }: { onAccept: (convId: number) => void }) {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPending = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/matches/pending`, {
+        headers: { ...getAuthHeaders() },
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPending();
+  }, []);
+
+  const handleAccept = async (reqId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/matches/${reqId}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to accept');
+
+      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      toast({
+        title: '🎉 Match Accepted!',
+        description: `You matched with ${data.requester?.name || 'this rider'}! Start chatting now.`,
+      });
+
+      if (data.conversationId) {
+        onAccept(data.conversationId);
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Could not accept match request',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDecline = async (reqId: number) => {
+    try {
+      await fetch(`${API_BASE}/matches/${reqId}/decline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+      });
+      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      toast({ title: 'Request Declined', description: 'Match request was removed.' });
+    } catch {
+      // ignore
+    }
+  };
+
+  if (loading || !requests.length) return null;
+
+  return (
+    <div className="p-3 border-b border-primary/20 bg-primary/5 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
+          <Sparkles size={12} /> Ride Requests ({requests.length})
+        </p>
+      </div>
+
+      <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
+        {requests.map((req) => (
+          <motion.div
+            key={req.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-card/90 border border-white/10 rounded-2xl space-y-2.5 shadow-lg"
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border border-primary/40 shrink-0">
+                <AvatarImage src={req.requester?.avatarUrl ?? ''} />
+                <AvatarFallback>{req.requester?.name?.charAt(0) ?? 'R'}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-white leading-tight truncate">
+                  <span className="text-primary">{req.requester?.name}</span> liked your profile!
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  🏍️ {req.requester?.vehicleType || 'Motorcycle rider'} • {req.requester?.city || 'India'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleAccept(req.id)}
+                size="sm"
+                className="flex-1 h-8 bg-primary text-black font-black text-xs hover:bg-primary/90 rounded-xl"
+              >
+                <Check size={13} className="mr-1" /> Accept Request
+              </Button>
+              <Button
+                onClick={() => handleDecline(req.id)}
+                size="sm"
+                variant="outline"
+                className="flex-1 h-8 border-white/10 text-muted-foreground text-xs hover:border-red-500/30 hover:text-red-400 rounded-xl"
+              >
+                <X size={13} className="mr-1" /> Decline
+              </Button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Group Join Request Card ───────────────────────────────────────────────────
 function GroupJoinRequestCard({ payload, conversationId }: { payload: string; conversationId: number }) {
   const { toast } = useToast();
   const [status, setStatus] = useState<'pending' | 'accepted' | 'declined'>('pending');
-  const BASE_URL = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
 
   let data: any = {};
   try { data = JSON.parse(payload); } catch { return null; }
@@ -23,9 +171,9 @@ function GroupJoinRequestCard({ payload, conversationId }: { payload: string; co
   const accept = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await fetch(`${BASE_URL}/api/groups/${groupId}/members`, {
+      await fetch(`${API_BASE}/groups/${groupId}/members`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
         body: JSON.stringify({ userId: requesterId }),
       });
@@ -99,12 +247,15 @@ function GroupJoinRequestCard({ payload, conversationId }: { payload: string; co
 // ─── Match Banner (top of conversations list) ─────────────────────────────────
 function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
   const { data: matches } = useGetMatches();
-  const recent = (matches ?? []).slice(0, 5);
+  const matchesList = Array.isArray(matches) ? matches : [];
+  const recent = matchesList.slice(0, 5);
   if (!recent.length) return null;
 
   return (
     <div className="px-3 py-3 border-b border-white/5">
-      <p className="text-[11px] font-black uppercase tracking-wider text-primary/70 mb-2">🔥 Ride Matches</p>
+      <p className="text-[11px] font-black uppercase tracking-wider text-primary/70 mb-2 flex items-center gap-1">
+        <Heart size={11} className="fill-primary" /> Active Matches
+      </p>
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {recent.map(m => (
           <motion.button
@@ -115,9 +266,9 @@ function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
           >
             <div className="relative">
               <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary shadow-[0_0_10px_rgba(214,255,47,0.25)]">
-                {(m.user as any).avatarUrl
+                {(m.user as any)?.avatarUrl
                   ? <img src={(m.user as any).avatarUrl} alt={(m.user as any).name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">{((m.user as any).name?.[0] ?? '?').toUpperCase()}</div>
+                  : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">{((m.user as any)?.name?.[0] ?? '?').toUpperCase()}</div>
                 }
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center border border-background">
@@ -125,7 +276,7 @@ function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
               </div>
             </div>
             <p className="text-[10px] font-semibold text-white/70 truncate w-14 text-center">
-              {(m.user as any).name?.split(' ')[0]}
+              {(m.user as any)?.name?.split(' ')[0]}
             </p>
           </motion.button>
         ))}
@@ -136,16 +287,23 @@ function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
 
 // ─── Messages Page ─────────────────────────────────────────────────────────────
 export default function Messages() {
-  const { data: conversations, isLoading: convLoading } = useGetConversations();
+  const { data: conversations, isLoading: convLoading, refetch: refetchConvs } = useGetConversations();
   const [activeId, setActiveId] = useState<number | null>(null);
   const [, navigate] = useLocation();
 
+  const conversationsList = Array.isArray(conversations) ? conversations : [];
+
   // Support deep-link: /messages?conv=123
-  React.useEffect(() => {
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const convId = params.get('conv');
     if (convId) setActiveId(parseInt(convId, 10));
   }, []);
+
+  const handleAcceptMatch = (convId: number) => {
+    setActiveId(convId);
+    refetchConvs();
+  };
 
   return (
     <div className="flex h-[calc(100svh-3.5rem-5rem)] md:h-svh overflow-hidden">
@@ -158,6 +316,9 @@ export default function Messages() {
             <Input placeholder="Search messages..." className="pl-9 bg-card/50 border-white/10 rounded-full h-10" />
           </div>
         </div>
+
+        {/* Pending Ride Request Card Banner */}
+        <PendingRequestsBanner onAccept={handleAcceptMatch} />
 
         {/* Match bubbles */}
         <MatchesBanner onOpen={id => setActiveId(id)} />
@@ -173,8 +334,7 @@ export default function Messages() {
                 </div>
               </div>
             ))
-          ) : conversations?.map(conv => {
-            // Detect if last message is a group join request
+          ) : conversationsList.map(conv => {
             let isJoinReq = false;
             try {
               const parsed = JSON.parse(conv.lastMessage ?? '');
@@ -189,8 +349,8 @@ export default function Messages() {
               >
                 <div className="relative shrink-0">
                   <Avatar className="h-12 w-12 border border-white/10">
-                    <AvatarImage src={conv.participant.avatarUrl || ''} />
-                    <AvatarFallback>{conv.participant.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={conv.participant?.avatarUrl || ''} />
+                    <AvatarFallback>{conv.participant?.name?.charAt(0) ?? 'U'}</AvatarFallback>
                   </Avatar>
                   {conv.unreadCount ? (
                     <span className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-full border-2 border-background" />
@@ -198,7 +358,7 @@ export default function Messages() {
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <div className="flex justify-between items-center mb-1">
-                    <h4 className="font-bold text-sm truncate">{conv.participant.name}</h4>
+                    <h4 className="font-bold text-sm truncate">{conv.participant?.name}</h4>
                     {conv.lastMessageAt && (
                       <span className="text-[10px] text-muted-foreground shrink-0">
                         {new Date(conv.lastMessageAt).toLocaleDateString()}
@@ -212,7 +372,7 @@ export default function Messages() {
               </button>
             );
           })}
-          {conversations?.length === 0 && (
+          {conversationsList.length === 0 && !convLoading && (
             <div className="text-center p-8 text-muted-foreground text-sm">No conversations yet.</div>
           )}
         </div>
@@ -235,24 +395,59 @@ export default function Messages() {
   );
 }
 
-// ─── Chat View ─────────────────────────────────────────────────────────────────
+// ─── Chat View with Real-Time WebSocket Support ─────────────────────────────────
 function ChatView({ conversationId, onBack }: { conversationId: number; onBack: () => void }) {
-  const { data: messages, isLoading } = useListMessages(conversationId);
+  const { data: initialMessages, isLoading } = useListMessages(conversationId);
   const sendMutation = useSendMessage(conversationId);
+  const [messagesList, setMessagesList] = useState<any[]>([]);
   const [text, setText] = useState('');
-  const bottomRef = React.useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { data: conversations } = useGetConversations();
 
-  const conversation = conversations?.find(c => c.id === conversationId);
+  const conversationsList = Array.isArray(conversations) ? conversations : [];
+  const conversation = conversationsList.find(c => c.id === conversationId);
+  const token = getToken();
 
-  React.useEffect(() => {
+  // Handle incoming real-time WebSocket messages
+  const handleNewMessage = (msg: ChatMessage) => {
+    if (msg.conversationId === conversationId) {
+      setMessagesList((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    }
+  };
+
+  const { isConnected, sendMessage } = useWebSocketChat(token, handleNewMessage);
+
+  useEffect(() => {
+    if (Array.isArray(initialMessages)) {
+      setMessagesList([...initialMessages].reverse());
+    }
+  }, [initialMessages]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messagesList]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    sendMutation.mutate({ data: { content: text } }, { onSuccess: () => setText('') });
+    const cleanText = text.trim();
+    if (!cleanText) return;
+
+    // Try WebSocket real-time send first
+    const sentViaWs = sendMessage(conversationId, cleanText);
+    if (!sentViaWs) {
+      // Fallback to HTTP POST
+      sendMutation.mutate({ data: { content: cleanText } }, {
+        onSuccess: (data: any) => {
+          if (data) {
+            setMessagesList((prev) => [...prev, data]);
+          }
+        },
+      });
+    }
+    setText('');
   };
 
   return (
@@ -265,12 +460,19 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
           </Button>
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border border-white/10">
-              <AvatarImage src={conversation?.participant.avatarUrl ?? ''} />
-              <AvatarFallback>{conversation?.participant.name?.charAt(0) ?? 'U'}</AvatarFallback>
+              <AvatarImage src={conversation?.participant?.avatarUrl ?? ''} />
+              <AvatarFallback>{conversation?.participant?.name?.charAt(0) ?? 'U'}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-bold text-sm">{conversation?.participant.name ?? 'Conversation'}</h3>
-              <p className="text-[10px] text-muted-foreground">Rider</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm">{conversation?.participant?.name ?? 'Conversation'}</h3>
+                {isConnected && (
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" title="Connected to WebSocket" />
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {isConnected ? '⚡ Live WebSocket' : 'Rider'}
+              </p>
             </div>
           </div>
         </div>
@@ -281,8 +483,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
       <div className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col gap-3">
         {isLoading && <div className="text-center text-muted-foreground text-sm py-8">Loading messages...</div>}
 
-        {[...(messages ?? [])].reverse().map(msg => {
-          // Check if this is a group join request system message
+        {messagesList.map((msg, index) => {
           let isJoinReq = false;
           try {
             const parsed = JSON.parse(msg.content);
@@ -291,23 +492,22 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
 
           if (isJoinReq) {
             return (
-              <GroupJoinRequestCard key={msg.id} payload={msg.content} conversationId={conversationId} />
+              <GroupJoinRequestCard key={msg.id || index} payload={msg.content} conversationId={conversationId} />
             );
           }
 
-          const isMe = msg.senderId === (messages?.[0]?.senderId ?? msg.senderId);
-          // Better heuristic: if two different senders, the first message's sender is the other person
-          // We'll rely on conversation context — fall back to position alternation is unreliable.
-          // Keep the simplified logic for now:
+          // Determine if sender is current logged in user
+          const isMe = msg.senderId !== conversation?.participant?.id;
+
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+            <div key={msg.id || index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 isMe
-                  ? 'bg-primary text-black rounded-tr-sm font-medium'
-                  : 'bg-white/8 text-white rounded-tl-sm'
+                  ? 'bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]'
+                  : 'bg-white/8 text-white rounded-tl-sm border border-white/5'
               }`}>
                 {msg.content}
-                <div className={`text-[10px] mt-1 opacity-60 ${isMe ? 'text-right' : 'text-left'}`}>
+                <div className={`text-[10px] mt-1 opacity-60 ${isMe ? 'text-right text-black/70' : 'text-left text-white/50'}`}>
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
@@ -328,7 +528,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
           />
           <Button
             type="submit"
-            disabled={!text.trim() || sendMutation.isPending}
+            disabled={!text.trim()}
             size="icon"
             className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20"
           >
