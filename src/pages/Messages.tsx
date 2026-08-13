@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useWebSocketChat, ChatMessage } from '@/hooks/useWebSocketChat';
+import { RequesterProfileModal, RequesterUser } from '@/components/RequesterProfileModal';
 
 const getApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -37,6 +38,7 @@ function PendingRequestsBanner({ onAccept }: { onAccept: (convId: number) => voi
   const { toast } = useToast();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<{ requester: RequesterUser; requestId: number } | null>(null);
 
   const fetchPending = async () => {
     try {
@@ -119,14 +121,17 @@ function PendingRequestsBanner({ onAccept }: { onAccept: (convId: number) => voi
             animate={{ opacity: 1, y: 0 }}
             className="p-3 bg-card/90 border border-white/10 rounded-2xl space-y-2.5 shadow-lg"
           >
-            <div className="flex items-center gap-3">
+            <div
+              onClick={() => setSelectedProfile({ requester: req.requester, requestId: req.id })}
+              className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity"
+            >
               <Avatar className="h-10 w-10 border border-primary/40 shrink-0">
                 <AvatarImage src={req.requester?.avatarUrl ?? ''} />
                 <AvatarFallback>{req.requester?.name?.charAt(0) ?? 'R'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-white leading-tight truncate">
-                  <span className="text-primary">{req.requester?.name}</span> liked your profile!
+                  <span className="text-primary hover:underline">{req.requester?.name}</span> liked your profile!
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">
                   🏍️ {req.requester?.vehicleType || 'Motorcycle rider'} • {req.requester?.city || 'India'}
@@ -136,14 +141,20 @@ function PendingRequestsBanner({ onAccept }: { onAccept: (convId: number) => voi
 
             <div className="flex gap-2">
               <Button
-                onClick={() => handleAccept(req.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAccept(req.id);
+                }}
                 size="sm"
                 className="flex-1 h-8 bg-primary text-black font-black text-xs hover:bg-primary/90 rounded-xl"
               >
                 <Check size={13} className="mr-1" /> Accept Request
               </Button>
               <Button
-                onClick={() => handleDecline(req.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDecline(req.id);
+                }}
                 size="sm"
                 variant="outline"
                 className="flex-1 h-8 border-white/10 text-muted-foreground text-xs hover:border-red-500/30 hover:text-red-400 rounded-xl"
@@ -154,6 +165,15 @@ function PendingRequestsBanner({ onAccept }: { onAccept: (convId: number) => voi
           </motion.div>
         ))}
       </div>
+
+      {/* Rider Profile Preview Modal */}
+      <RequesterProfileModal
+        requester={selectedProfile?.requester || null}
+        requestId={selectedProfile?.requestId || null}
+        onClose={() => setSelectedProfile(null)}
+        onAccept={handleAccept}
+        onDecline={handleDecline}
+      />
     </div>
   );
 }

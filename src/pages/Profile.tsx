@@ -142,9 +142,10 @@ function ImageEditModal({
           method: 'POST',
           body: JSON.stringify({ image: url, folder: isAvatar ? 'avatars' : 'covers' }),
         });
-        if (uploadRes?.url) {
-          finalUrl = uploadRes.url;
+        if (!uploadRes?.url || uploadRes.url.startsWith('data:')) {
+          throw new Error(uploadRes?.error || uploadRes?.message || 'Failed to upload image to S3. Please try again.');
         }
+        finalUrl = uploadRes.url;
       }
       await onSave(finalUrl);
       onClose();
