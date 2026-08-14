@@ -1,7 +1,7 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Shield, CheckCircle2, Check, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, MapPin, Shield, CheckCircle2, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export interface RequesterUser {
   id: number;
@@ -39,8 +39,12 @@ export function RequesterProfileModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/35 backdrop-blur-xl transition-all"
+      >
         <motion.div
+          onClick={(e) => e.stopPropagation()}
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -67,7 +71,7 @@ export function RequesterProfileModal({
                 className="w-full h-full bg-cover bg-center"
                 style={{
                   backgroundImage:
-                    'url(https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80)',
+                    "url(https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&q=80)",
                 }}
               />
             )}
@@ -88,13 +92,16 @@ export function RequesterProfileModal({
                     />
                   ) : (
                     <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-black text-2xl">
-                      {requester.name?.charAt(0) ?? 'R'}
+                      {requester.name?.charAt(0) ?? "R"}
                     </div>
                   )}
                 </div>
                 {requester.isVerified && (
                   <div className="absolute -bottom-1 -right-1 bg-primary text-black p-1 rounded-full border-2 border-[#121212]">
-                    <CheckCircle2 size={14} className="fill-black text-primary" />
+                    <CheckCircle2
+                      size={14}
+                      className="fill-black text-primary"
+                    />
                   </div>
                 )}
               </div>
@@ -108,31 +115,39 @@ export function RequesterProfileModal({
             {/* Name, Age, Location */}
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-black text-white">{requester.name}</h2>
+                <h2 className="text-2xl font-black text-white">
+                  {requester.name}
+                </h2>
                 {requester.age && (
-                  <span className="text-xl font-medium text-white/50">{requester.age}</span>
+                  <span className="text-xl font-medium text-white/50">
+                    {requester.age}
+                  </span>
                 )}
               </div>
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <MapPin size={13} className="text-primary" />
-                {requester.city || 'India'}
-                {requester.country ? `, ${requester.country}` : ''}
+                {requester.city || "India"}
+                {requester.country ? `, ${requester.country}` : ""}
               </p>
             </div>
 
             {/* Rider Badges & Specs */}
             <div className="grid grid-cols-2 gap-2.5">
               <div className="p-3 bg-white/5 border border-white/8 rounded-2xl">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Vehicle</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Vehicle
+                </p>
                 <p className="text-xs font-bold text-white mt-0.5 truncate">
-                  🏍️ {requester.vehicleType || 'Motorcycle'}
+                  🏍️ {requester.vehicleType || "Motorcycle"}
                 </p>
               </div>
 
               <div className="p-3 bg-white/5 border border-white/8 rounded-2xl">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Travel Style</p>
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  Travel Style
+                </p>
                 <p className="text-xs font-bold text-white mt-0.5 truncate">
-                  🛣️ {requester.travelStyle || 'Solo & Group'}
+                  🛣️ {requester.travelStyle || "Solo & Group"}
                 </p>
               </div>
             </div>
@@ -140,7 +155,9 @@ export function RequesterProfileModal({
             {/* Bio */}
             {requester.bio && (
               <div className="space-y-1.5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">About Rider</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  About Rider
+                </p>
                 <p className="text-xs text-white/80 leading-relaxed bg-white/5 border border-white/5 p-3.5 rounded-2xl">
                   {requester.bio}
                 </p>
@@ -150,7 +167,9 @@ export function RequesterProfileModal({
             {/* Interests & Looking For */}
             {requester.interests && requester.interests.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Interests</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Interests
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {requester.interests.map((tag, i) => (
                     <span
