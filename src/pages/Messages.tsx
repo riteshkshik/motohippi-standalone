@@ -3,7 +3,7 @@ import { useGetConversations, useListMessages, useSendMessage, useGetMatches } f
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X, Heart, Sparkles } from 'lucide-react';
+import { Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X, Heart, Sparkles, Image as ImageIcon, Loader2, Maximize2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
@@ -421,8 +421,12 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
   const { data: initialMessages, isLoading } = useListMessages(conversationId);
   const sendMutation = useSendMessage(conversationId);
   const { refetchUnread } = useUnreadCount();
+  const { toast } = useToast();
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [text, setText] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data: conversations } = useGetConversations();
 
@@ -456,16 +460,84 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesList]);
 
+  const sendImageMessage = (s3Url: string) => {
+    const sentViaWs = sendMessage(conversationId, s3Url, 'image');
+    if (!sentViaWs) {
+      sendMutation.mutate({ data: { content: s3Url, messageType: 'image' } }, {
+        onSuccess: (data: any) => {
+          if (data) {
+            setMessagesList((prev) => [...prev, data]);
+          }
+        },
+      });
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: `Image size is ${(file.size / (1024 * 1024)).toFixed(1)} MB. Maximum allowed size is 3 MB.`,
+        variant: "destructive",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        const res = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ image: base64, folder: 'chat_images' }),
+        });
+
+        const data = await res.json();
+        setIsUploadingImage(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        if (!res.ok || !data.url) {
+          toast({
+            title: "Upload Failed",
+            description: data.error || data.message || "Failed to upload image to S3",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Send message with AWS S3 URL
+        sendImageMessage(data.url);
+      };
+      reader.onerror = () => {
+        setIsUploadingImage(false);
+        toast({ title: "Error", description: "Failed to read image file", variant: "destructive" });
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setIsUploadingImage(false);
+      toast({ title: "Upload Failed", description: err.message || "Failed to upload image", variant: "destructive" });
+    }
+  };
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanText = text.trim();
     if (!cleanText) return;
 
     // Try WebSocket real-time send first
-    const sentViaWs = sendMessage(conversationId, cleanText);
+    const sentViaWs = sendMessage(conversationId, cleanText, 'text');
     if (!sentViaWs) {
       // Fallback to HTTP POST
-      sendMutation.mutate({ data: { content: cleanText } }, {
+      sendMutation.mutate({ data: { content: cleanText, messageType: 'text' } }, {
         onSuccess: (data: any) => {
           if (data) {
             setMessagesList((prev) => [...prev, data]);
@@ -522,20 +594,48 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
             );
           }
 
+          // Determine if message is an image
+          const isImageMsg = msg.messageType === 'image' || (typeof msg.content === 'string' && msg.content.startsWith('http') && (msg.content.includes('chat_images') || msg.content.match(/\.(jpeg|jpg|gif|png|webp)/i)));
+
           // Determine if sender is current logged in user
           const isMe = msg.senderId !== conversation?.participant?.id;
 
           return (
             <div key={msg.id || index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              <div className={`max-w-[75%] md:max-w-[65%] rounded-2xl ${
+                isImageMsg ? 'p-0 bg-transparent' : 'px-4 py-2.5 text-sm leading-relaxed'
+              } ${
                 isMe
-                  ? 'bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]'
-                  : 'bg-white/8 text-white rounded-tl-sm border border-white/5'
+                  ? isImageMsg ? 'rounded-tr-sm' : 'bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]'
+                  : isImageMsg ? 'rounded-tl-sm' : 'bg-white/8 text-white rounded-tl-sm border border-white/5'
               }`}>
-                {msg.content}
-                <div className={`text-[10px] mt-1 opacity-60 ${isMe ? 'text-right text-black/70' : 'text-left text-white/50'}`}>
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+                {isImageMsg ? (
+                  <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-lg">
+                    <img
+                      src={msg.content}
+                      alt="Shared Image"
+                      onClick={() => setLightboxImageUrl(msg.content)}
+                      className="max-h-[320px] w-full object-cover rounded-2xl cursor-pointer hover:opacity-95 transition-all block"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImageUrl(msg.content)}
+                      className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md"
+                    >
+                      <Maximize2 size={14} />
+                    </button>
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[10px] text-white/90 font-medium border border-white/10 shadow-md pointer-events-none">
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {msg.content}
+                    <div className={`text-[10px] mt-1 px-1 opacity-60 ${isMe ? 'text-right text-black/70' : 'text-left text-white/50'}`}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -543,25 +643,73 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input Bar */}
       <div className="p-4 bg-background border-t border-white/5 shrink-0">
-        <form onSubmit={handleSend} className="flex gap-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+        <form onSubmit={handleSend} className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            disabled={isUploadingImage}
+            onClick={() => fileInputRef.current?.click()}
+            className="h-12 w-12 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-white"
+            title="Send Image (Max 3MB)"
+          >
+            {isUploadingImage ? <Loader2 size={18} className="animate-spin text-primary" /> : <ImageIcon size={18} />}
+          </Button>
+
           <Input
             value={text}
             onChange={e => setText(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4"
+            placeholder={isUploadingImage ? "Uploading image to S3..." : "Type a message..."}
+            disabled={isUploadingImage}
+            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-sm"
           />
           <Button
             type="submit"
-            disabled={!text.trim()}
+            disabled={!text.trim() || isUploadingImage}
             size="icon"
-            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20"
+            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20 bg-primary text-black font-bold hover:bg-primary/90"
           >
             <Send size={18} className="ml-0.5" />
           </Button>
         </form>
       </div>
+
+      {/* Fullscreen Image Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxImageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxImageUrl(null)}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+          >
+            <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setLightboxImageUrl(null)}
+                className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <img
+                src={lightboxImageUrl}
+                alt="Enlarged preview"
+                className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

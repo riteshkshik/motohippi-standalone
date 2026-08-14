@@ -32,7 +32,7 @@ const getToken = () =>
 
 export function UnreadCountProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const token = isLoggedIn ? getToken() : null;
 
   const fetchUnread = useCallback(async () => {
@@ -64,8 +64,13 @@ export function UnreadCountProvider({ children }: { children: React.ReactNode })
 
   // Listen to live incoming WebSocket messages when logged in
   const handleNewMessage = useCallback((msg: ChatMessage) => {
-    setUnreadCount((prev) => prev + 1);
-  }, []);
+    // Ignore self-sent messages (text or image)
+    if (user?.id && msg.senderId === user.id) {
+      return;
+    }
+    // Fetch fresh unread count for incoming messages from other users
+    fetchUnread();
+  }, [user?.id, fetchUnread]);
 
   useWebSocketChat(token ? token : null, handleNewMessage);
 

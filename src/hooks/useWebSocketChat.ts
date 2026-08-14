@@ -79,13 +79,14 @@ export function useWebSocketChat(token: string | null, onNewMessage?: (msg: Chat
     };
   }, [token, getWsUrl]);
 
-  const sendMessage = useCallback((conversationId: number, content: string) => {
+  const sendMessage = useCallback((conversationId: number, content: string, messageType: string = 'text') => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
           type: 'send_message',
           conversationId,
           content,
+          messageType,
         })
       );
       return true;
