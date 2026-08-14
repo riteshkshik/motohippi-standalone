@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useGetDashboard } from '@workspace/api-client-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -384,10 +385,11 @@ function EventAdCarousel() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const { data: dashboard, isLoading } = useGetDashboard();
+  const { unreadCount } = useUnreadCount();
 
-  if (isLoading) {
+  if (isLoading || !dashboard || !dashboard.stats) {
     return (
-      <div className="px-4 py-5 md:px-6 md:py-8 space-y-6">
+      <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-6">
         <Skeleton className="h-48 w-full rounded-2xl" />
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
@@ -397,8 +399,6 @@ export default function Home() {
     );
   }
 
-  if (!dashboard) return null;
-
   return (
     <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       {/* Make Friends * Travel * Chill — Lottie Hero */}
@@ -406,9 +406,9 @@ export default function Home() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3 md:gap-4">
-        <StatsCard icon={Users} title="New Matches" value={dashboard.stats.totalMatches} href="/discover" />
-        <StatsCard icon={Activity} title="Active Groups" value={dashboard.stats.groupsCount} href="/groups" />
-        <StatsCard icon={MessageSquare} title="Unread Messages" value={dashboard.stats.unreadMessages} href="/messages" />
+        <StatsCard icon={Users} title="New Matches" value={dashboard?.stats?.totalMatches ?? 0} href="/discover" />
+        <StatsCard icon={Activity} title="Active Groups" value={dashboard?.stats?.groupsCount ?? 0} href="/groups" />
+        <StatsCard icon={MessageSquare} title="Unread Messages" value={unreadCount ?? dashboard?.stats?.unreadMessages ?? 0} href="/messages" />
       </div>
 
       {/* Upcoming Events — Advertisement Carousel */}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 
 // ─── YouTube icon (SVG — not in lucide-react) ─────────────────────────────────
 const YouTubeIcon = ({ size = 20, className = '' }: { size?: number; className?: string }) => (
@@ -75,6 +76,7 @@ const MOBILE_MAIN = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, user } = useAuth();
   const [location, navigate] = useLocation();
+  const { unreadCount } = useUnreadCount();
   const { data: cart } = useGetCart({ query: { enabled: isLoggedIn, queryKey: ['/api/cart'] } });
   const cartCount = cart?.items?.reduce((s: number, i: any) => s + i.quantity, 0) ?? 0;
 
@@ -136,6 +138,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   ? <FindPartnerIcon size={20} active={isActive(item.href)} />
                   : <item.icon size={20} strokeWidth={isActive(item.href) ? 2.2 : 1.8} />}
                 <span className="font-medium text-sm">{item.label}</span>
+                {item.href === '/messages' && unreadCount > 0 && (
+                  <span className="ml-auto px-2 py-0.5 text-[10px] font-black rounded-full bg-primary text-black shadow-[0_0_12px_rgba(214,255,47,0.4)]">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
                 {item.upcoming && (
                   <span className="ml-auto text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded-full leading-none">
                     Soon
@@ -333,6 +340,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   {item.href === '/discover'
                     ? <FindPartnerIcon size={24} active={active} />
                     : <item.icon size={22} strokeWidth={active ? 2.2 : 1.8} className="relative" />}
+                  {item.href === '/messages' && unreadCount > 0 && (
+                    <span className="absolute top-1 right-2 min-w-[16px] h-[16px] px-0.5 rounded-full bg-primary text-black text-[9px] font-black flex items-center justify-center shadow-md">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                   <span className="text-[10px] font-semibold relative">{item.label}</span>
                 </button>
               </Link>

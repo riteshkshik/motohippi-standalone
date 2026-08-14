@@ -27,6 +27,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 
+import { UnreadCountProvider } from '@/hooks/useUnreadCount';
+
 const queryClient = new QueryClient();
 
 function Router() {
@@ -68,9 +70,11 @@ function App() {
       <TooltipProvider>
         <AppProvider>
           <AuthProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-              <Router />
-            </WouterRouter>
+            <UnreadCountProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+                <Router />
+              </WouterRouter>
+            </UnreadCountProvider>
           </AuthProvider>
         </AppProvider>
         <Toaster />

@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useWebSocketChat, ChatMessage } from '@/hooks/useWebSocketChat';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { RequesterProfileModal, RequesterUser } from '@/components/RequesterProfileModal';
 
 const getApiBase = () => {
@@ -419,6 +420,7 @@ export default function Messages() {
 function ChatView({ conversationId, onBack }: { conversationId: number; onBack: () => void }) {
   const { data: initialMessages, isLoading } = useListMessages(conversationId);
   const sendMutation = useSendMessage(conversationId);
+  const { refetchUnread } = useUnreadCount();
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -435,6 +437,8 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
+      // Mark as read immediately when user is in active chat
+      refetchUnread();
     }
   };
 
@@ -443,8 +447,10 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
   useEffect(() => {
     if (Array.isArray(initialMessages)) {
       setMessagesList([...initialMessages].reverse());
+      // Refetch unread count when messages are fetched (backend auto-marks them read)
+      refetchUnread();
     }
-  }, [initialMessages]);
+  }, [initialMessages, refetchUnread]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

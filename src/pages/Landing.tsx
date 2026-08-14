@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,13 @@ export default function Landing() {
   const { isLoggedIn } = useAuth();
   const [_, setLocation] = useLocation();
 
-  if (isLoggedIn) {
-    setLocation('/home');
-    return null;
-  }
+  useEffect(() => {
+    if (isLoggedIn) {
+      setLocation('/home');
+    }
+  }, [isLoggedIn, setLocation]);
+
+  if (isLoggedIn) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
