@@ -391,8 +391,8 @@ export default function Home() {
     return (
       <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-6">
         <Skeleton className="h-48 w-full rounded-2xl" />
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2].map(i => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
         </div>
         <Skeleton className="h-72 w-full rounded-2xl" />
       </div>
@@ -404,10 +404,9 @@ export default function Home() {
       {/* Make Friends * Travel * Chill — Lottie Hero */}
       <LottieHeroBanner />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
-        <StatsCard icon={Users} title="New Matches" value={dashboard?.stats?.totalMatches ?? 0} href="/discover" />
-        <StatsCard icon={Activity} title="Active Groups" value={dashboard?.stats?.groupsCount ?? 0} href="/groups" />
+      {/* Stats Grid — 2 Columns */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
+        <StatsCard icon={Users} title="Active Requests" value={(dashboard?.stats as any)?.activeRequests ?? 0} href="/messages" />
         <StatsCard icon={MessageSquare} title="Unread Messages" value={unreadCount ?? dashboard?.stats?.unreadMessages ?? 0} href="/messages" />
       </div>
 

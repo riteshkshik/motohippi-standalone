@@ -329,7 +329,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             const active = isActive(item.href);
             return (
               <Link key={item.href} href={item.href}>
-                <button className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[52px] min-h-[48px] justify-center transition-all ${
+                <button className={`relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[52px] min-h-[48px] justify-center transition-all ${
                   active ? 'text-primary' : 'text-white/40 hover:text-white/70'
                 }`}>
                   {active && (
