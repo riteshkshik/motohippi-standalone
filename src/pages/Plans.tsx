@@ -87,6 +87,23 @@ export default function Plans() {
   const { toast } = useToast();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
+  const [dynamicPlans, setDynamicPlans] = useState(PLAN_LIST);
+
+  useEffect(() => {
+    customFetch<{ plans: { id: string; name: string; amount: number }[] }>('/api/payments/plans')
+      .then((res) => {
+        if (res && Array.isArray(res.plans)) {
+          setDynamicPlans((prev) =>
+            prev.map((p) => {
+              const sp = res.plans.find((x) => x.id === p.id);
+              return sp ? { ...p, price: `₹${sp.amount}`, amount: sp.amount } : p;
+            })
+          );
+        }
+      })
+      .catch((err) => console.warn('Could not fetch plan prices from server:', err));
+  }, []);
+
   const handleSelectPlan = async (plan: PlanItem) => {
     if (plan.id === 'free') return;
 
@@ -198,7 +215,7 @@ export default function Plans() {
 
         {/* Plans Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch pt-4">
-          {PLAN_LIST.map((plan) => {
+          {dynamicPlans.map((plan) => {
             const isCurrent = currentPlan === plan.id;
             const isLoading = loadingPlanId === plan.id;
 

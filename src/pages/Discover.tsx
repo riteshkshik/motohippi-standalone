@@ -814,6 +814,8 @@ function PremiumCard() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const [dynamicPlans, setDynamicPlans] = useState(PLANS);
+
   useEffect(() => {
     if (user?.plan) {
       // Auto select current active plan or highest available
@@ -821,8 +823,23 @@ function PremiumCard() {
     }
   }, [user?.plan]);
 
+  useEffect(() => {
+    customFetch<{ plans: { id: string; name: string; amount: number }[] }>("/api/payments/plans")
+      .then((res) => {
+        if (res && Array.isArray(res.plans)) {
+          setDynamicPlans((prev) =>
+            prev.map((p) => {
+              const sp = res.plans.find((x) => x.id === p.id);
+              return sp ? { ...p, price: `₹${sp.amount}` } : p;
+            })
+          );
+        }
+      })
+      .catch((err) => console.warn("Could not fetch plan prices from server:", err));
+  }, []);
+
   const handleUpgrade = async () => {
-    const plan = PLANS.find((p) => p.id === selected);
+    const plan = dynamicPlans.find((p) => p.id === selected);
     if (!plan || plan.id === "free") return;
     const targetRank = PLAN_RANKS[selected] ?? 0;
     if (targetRank <= currentDbRank) return;
@@ -913,7 +930,7 @@ function PremiumCard() {
         </span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 mb-3">
-        {PLANS.map((plan) => {
+        {dynamicPlans.map((plan) => {
           const planRank = PLAN_RANKS[plan.id] ?? 0;
           const isActiveDbPlan = plan.id === currentPlan;
           const isLowerTier = planRank < currentDbRank;
@@ -968,7 +985,7 @@ function PremiumCard() {
         })}
       </div>
       <div className="space-y-1 mb-3">
-        {PLANS.find((p) => p.id === selected)?.features.map((f) => (
+        {dynamicPlans.find((p) => p.id === selected)?.features.map((f) => (
           <div
             key={f}
             className="flex items-center gap-2 text-xs text-white/55"
@@ -990,7 +1007,7 @@ function PremiumCard() {
         ) : isDowngrade ? (
           `Included in ${currentPlan.toUpperCase()} Plan`
         ) : (
-          `Upgrade to ${PLANS.find((p) => p.id === selected)?.name}`
+          `Upgrade to ${dynamicPlans.find((p) => p.id === selected)?.name}`
         )}
       </Button>
     </div>
