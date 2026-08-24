@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGetCart } from '@workspace/api-client-react';
 import {
   Home, Compass, Users, Globe, ShoppingBag, Shield,
-  MessageSquare, User, Bell, Mail,
+  MessageSquare, User, Bell, Mail, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -185,6 +185,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
               {cartCount > 0 && (
                 <span className="ml-auto w-5 h-5 rounded-full bg-primary text-black text-[10px] font-black flex items-center justify-center">{cartCount}</span>
               )}
+            </span>
+          </Link>
+          <Link href="/plans">
+            <span className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+              location === '/plans' || location === '/pricing' ? 'bg-primary/12 text-primary' : 'text-primary hover:bg-primary/10'
+            }`}>
+              <Sparkles size={20} strokeWidth={2} className="text-primary animate-pulse" />
+              <span className="font-bold text-sm">Ride Passes</span>
+              <span className="ml-auto text-[8px] font-black uppercase tracking-widest bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 rounded-full leading-none">
+                VIP
+              </span>
             </span>
           </Link>
           <Link href="/profile">

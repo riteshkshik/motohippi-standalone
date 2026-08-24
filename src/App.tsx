@@ -26,6 +26,8 @@ import Terms from '@/pages/Terms';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import RefundPolicy from '@/pages/RefundPolicy';
 import ShippingPolicy from '@/pages/ShippingPolicy';
+import Plans from '@/pages/Plans';
+import PaymentStatus from '@/pages/PaymentStatus';
 
 import NotFound from '@/pages/not-found';
 import { Toaster } from '@/components/ui/toaster';
@@ -46,6 +48,11 @@ function Router() {
         <Route path="/verify-email" component={VerifyEmail} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/onboarding" component={Onboarding} />
+
+        {/* Membership Plans & Payment Routes */}
+        <Route path="/plans" component={Plans} />
+        <Route path="/pricing" component={Plans} />
+        <Route path="/payment-status" component={PaymentStatus} />
 
         {/* Legal & Policy Routes */}
         <Route path="/T&C" component={Terms} />

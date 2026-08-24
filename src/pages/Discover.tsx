@@ -42,6 +42,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { customFetch } from "@workspace/api-client-react/custom-fetch";
+import { checkoutWithCashfree } from "@/lib/cashfree";
 import {
   Drawer,
   DrawerContent,
@@ -821,40 +823,60 @@ function PremiumCard() {
 
   const handleUpgrade = async () => {
     const plan = PLANS.find((p) => p.id === selected);
-    if (!plan) return;
+    if (!plan || plan.id === "free") return;
     const targetRank = PLAN_RANKS[selected] ?? 0;
     if (targetRank <= currentDbRank) return;
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("motohippi_token");
-      const res = await fetch(`${getApiBase()}/subscription/upgrade`, {
+      // 1. Create Cashfree order
+      const res = await customFetch<{
+        success: boolean;
+        orderId: string;
+        paymentSessionId: string;
+        amount: number;
+        planName: string;
+      }>("/api/payments/create-order", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify({ plan: selected }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: selected }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        if (data.user) updateUser(data.user);
-        refreshUser();
+
+      if (!res.paymentSessionId) {
+        throw new Error("Failed to retrieve payment session from server");
+      }
+
+      toast({
+        title: "Opening Cashfree Checkout…",
+        description: `Launching payment popup for ${plan.name} (${plan.price})`,
+      });
+
+      // 2. Launch Cashfree PG Modal
+      await checkoutWithCashfree(res.paymentSessionId, "sandbox", "_modal");
+
+      // 3. Verify payment
+      toast({
+        title: "Verifying Payment…",
+        description: "Checking status with Cashfree",
+      });
+
+      const verifyRes = await customFetch<{ status: string; userPlan: string }>(
+        `/api/payments/verify/${res.orderId}`,
+        { method: "GET" }
+      );
+
+      if (verifyRes.status === "PAID" || verifyRes.userPlan === selected) {
+        if (refreshUser) await refreshUser();
         toast({
           title: `🎉 Welcome to MotoHippi ${plan.name}!`,
           description: `You are now on the ${plan.name} plan! All tier features unlocked.`,
         });
-      } else {
-        toast({
-          title: "Upgrade Failed",
-          description: data.error || "Failed to upgrade subscription",
-          variant: "destructive",
-        });
       }
     } catch (err: any) {
+      console.error("Cashfree Checkout error:", err);
       toast({
-        title: "Error",
-        description: err.message || "Failed to process upgrade",
+        title: "Upgrade Error",
+        description: err?.message || "Could not complete payment",
         variant: "destructive",
       });
     } finally {
