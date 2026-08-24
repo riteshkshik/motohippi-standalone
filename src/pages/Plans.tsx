@@ -99,63 +99,79 @@ export default function Plans() {
       return;
     }
 
-    try {
-      setLoadingPlanId(plan.id);
+      let createdOrderId = '';
+      try {
+        setLoadingPlanId(plan.id);
 
-      // 1. Create order on backend
-      const res = await customFetch<{
-        success: boolean;
-        orderId: string;
-        paymentSessionId: string;
-        amount: number;
-        planName: string;
-      }>('/api/payments/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: plan.id }),
-      });
-
-      if (!res.paymentSessionId) {
-        throw new Error('Failed to retrieve payment session from server');
-      }
-
-      // 2. Launch Cashfree PG Modal
-      toast({
-        title: 'Opening Secure Checkout…',
-        description: 'Launching Cashfree Payment Gateway',
-      });
-
-      await checkoutWithCashfree(res.paymentSessionId, 'sandbox', '_modal');
-
-      // 3. Verify payment after popup closes
-      toast({
-        title: 'Verifying Payment…',
-        description: 'Checking order status with Cashfree',
-      });
-
-      const verifyRes = await customFetch<{ status: string; userPlan: string }>(
-        `/api/payments/verify/${res.orderId}`,
-        { method: 'GET' }
-      );
-
-      if (verifyRes.status === 'PAID' || verifyRes.userPlan === plan.id) {
-        if (refreshUser) await refreshUser();
-        toast({
-          title: '🎉 Plan Upgraded Successfully!',
-          description: `Welcome to ${plan.name}! Your perks are now unlocked.`,
+        // 1. Create order on backend
+        const res = await customFetch<{
+          success: boolean;
+          orderId: string;
+          paymentSessionId: string;
+          amount: number;
+          planName: string;
+        }>('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId: plan.id }),
         });
-        setLocation('/payment-status?order_id=' + res.orderId);
+
+        if (!res.paymentSessionId) {
+          throw new Error('Failed to retrieve payment session from server');
+        }
+        createdOrderId = res.orderId;
+
+        // 2. Launch Cashfree PG Modal
+        toast({
+          title: 'Opening Secure Checkout…',
+          description: 'Launching Cashfree Payment Gateway',
+        });
+
+        await checkoutWithCashfree(res.paymentSessionId, 'sandbox', '_modal');
+
+        // 3. Verify payment after popup closes
+        toast({
+          title: 'Verifying Payment…',
+          description: 'Checking order status with Cashfree',
+        });
+
+        const verifyRes = await customFetch<{ status: string; userPlan: string }>(
+          `/api/payments/verify/${res.orderId}`,
+          { method: 'GET' }
+        );
+
+        if (verifyRes.status === 'PAID' || verifyRes.userPlan === plan.id) {
+          if (refreshUser) await refreshUser();
+          toast({
+            title: '🎉 Plan Upgraded Successfully!',
+            description: `Welcome to ${plan.name}! Your perks are now unlocked.`,
+          });
+          setLocation('/payment-status?order_id=' + res.orderId);
+        } else {
+          await customFetch('/api/payments/mark-failed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: res.orderId, reason: 'USER_CANCELLED' }),
+          }).catch(() => {});
+          setLocation('/payment-status?order_id=' + res.orderId);
+        }
+      } catch (err: any) {
+        console.error('Payment checkout error:', err);
+        if (createdOrderId) {
+          await customFetch('/api/payments/mark-failed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: createdOrderId, reason: 'PAYMENT_FAILED' }),
+          }).catch(() => {});
+        }
+        toast({
+          variant: 'destructive',
+          title: 'Payment Error',
+          description: err?.message || 'Could not complete payment process. Please try again.',
+        });
+      } finally {
+        setLoadingPlanId(null);
       }
-    } catch (err: any) {
-      console.error('Payment checkout error:', err);
-      toast({
-        variant: 'destructive',
-        title: 'Payment Error',
-        description: err?.message || 'Could not complete payment process. Please try again.',
-      });
-    } finally {
-      setLoadingPlanId(null);
-    }
   };
 
   const currentPlan = user?.plan || 'free';

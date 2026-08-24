@@ -827,6 +827,7 @@ function PremiumCard() {
     const targetRank = PLAN_RANKS[selected] ?? 0;
     if (targetRank <= currentDbRank) return;
 
+    let createdOrderId = "";
     setLoading(true);
     try {
       // 1. Create Cashfree order
@@ -845,6 +846,7 @@ function PremiumCard() {
       if (!res.paymentSessionId) {
         throw new Error("Failed to retrieve payment session from server");
       }
+      createdOrderId = res.orderId;
 
       toast({
         title: "Opening Cashfree Checkout…",
@@ -871,9 +873,22 @@ function PremiumCard() {
           title: `🎉 Welcome to MotoHippi ${plan.name}!`,
           description: `You are now on the ${plan.name} plan! All tier features unlocked.`,
         });
+      } else {
+        await customFetch("/api/payments/mark-failed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: res.orderId, reason: "USER_CANCELLED" }),
+        }).catch(() => {});
       }
     } catch (err: any) {
       console.error("Cashfree Checkout error:", err);
+      if (createdOrderId) {
+        await customFetch("/api/payments/mark-failed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: createdOrderId, reason: "PAYMENT_FAILED" }),
+        }).catch(() => {});
+      }
       toast({
         title: "Upgrade Error",
         description: err?.message || "Could not complete payment",
