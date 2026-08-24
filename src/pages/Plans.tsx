@@ -125,6 +125,7 @@ export default function Plans() {
           success: boolean;
           orderId: string;
           paymentSessionId: string;
+          cfMode?: 'sandbox' | 'production';
           amount: number;
           planName: string;
         }>('/api/payments/create-order', {
@@ -144,7 +145,7 @@ export default function Plans() {
           description: 'Launching Cashfree Payment Gateway',
         });
 
-        await checkoutWithCashfree(res.paymentSessionId, 'sandbox', '_modal');
+        await checkoutWithCashfree(res.paymentSessionId, res.cfMode || 'sandbox', '_modal');
 
         // 3. Verify payment after popup closes
         toast({

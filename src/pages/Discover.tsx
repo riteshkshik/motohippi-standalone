@@ -852,6 +852,7 @@ function PremiumCard() {
         success: boolean;
         orderId: string;
         paymentSessionId: string;
+        cfMode?: "sandbox" | "production";
         amount: number;
         planName: string;
       }>("/api/payments/create-order", {
@@ -871,7 +872,7 @@ function PremiumCard() {
       });
 
       // 2. Launch Cashfree PG Modal
-      await checkoutWithCashfree(res.paymentSessionId, "sandbox", "_modal");
+      await checkoutWithCashfree(res.paymentSessionId, res.cfMode || "sandbox", "_modal");
 
       // 3. Verify payment
       toast({
