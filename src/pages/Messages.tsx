@@ -266,10 +266,18 @@ function GroupJoinRequestCard({ payload, conversationId }: { payload: string; co
 }
 
 // ─── Match Banner (top of conversations list) ─────────────────────────────────
-function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
+function MatchesBanner({ onOpen, searchQuery = '' }: { onOpen: (convId: number) => void; searchQuery?: string }) {
   const { data: matches } = useGetMatches();
   const matchesList = Array.isArray(matches) ? matches : [];
-  const recent = matchesList.slice(0, 5);
+  const query = searchQuery.trim().toLowerCase();
+
+  const filtered = matchesList.filter(m => {
+    if (!query) return true;
+    const name = (m.user as any)?.name?.toLowerCase() || '';
+    return name.includes(query);
+  });
+
+  const recent = filtered.slice(0, 5);
   if (!recent.length) return null;
 
   return (
@@ -310,9 +318,18 @@ function MatchesBanner({ onOpen }: { onOpen: (convId: number) => void }) {
 export default function Messages() {
   const { data: conversations, isLoading: convLoading, refetch: refetchConvs } = useGetConversations();
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [, navigate] = useLocation();
 
   const conversationsList = Array.isArray(conversations) ? conversations : [];
+
+  const filteredConversations = conversationsList.filter((conv) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase().trim();
+    const name = conv.participant?.name?.toLowerCase() || '';
+    const lastMsg = conv.lastMessage?.toLowerCase() || '';
+    return name.includes(query) || lastMsg.includes(query);
+  });
 
   // Support deep-link: /messages?conv=123
   useEffect(() => {
@@ -334,7 +351,21 @@ export default function Messages() {
           <h2 className="text-2xl font-black mb-4">Messages</h2>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-            <Input placeholder="Search messages..." className="pl-9 bg-card/50 border-white/10 rounded-full h-10" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages or riders..."
+              className="pl-9 pr-9 bg-card/50 border-white/10 rounded-full h-10"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -342,7 +373,7 @@ export default function Messages() {
         <PendingRequestsBanner onAccept={handleAcceptMatch} />
 
         {/* Match bubbles */}
-        <MatchesBanner onOpen={id => setActiveId(id)} />
+        <MatchesBanner onOpen={id => setActiveId(id)} searchQuery={searchQuery} />
 
         <div className="flex-1 overflow-y-auto no-scrollbar p-2">
           {convLoading ? (
@@ -355,7 +386,7 @@ export default function Messages() {
                 </div>
               </div>
             ))
-          ) : conversationsList.map(conv => {
+          ) : filteredConversations.map(conv => {
             let isJoinReq = false;
             try {
               const parsed = JSON.parse(conv.lastMessage ?? '');
@@ -393,8 +424,10 @@ export default function Messages() {
               </button>
             );
           })}
-          {conversationsList.length === 0 && !convLoading && (
-            <div className="text-center p-8 text-muted-foreground text-sm">No conversations yet.</div>
+          {filteredConversations.length === 0 && !convLoading && (
+            <div className="text-center p-8 text-muted-foreground text-sm">
+              {searchQuery ? 'No matching conversations found.' : 'No conversations yet.'}
+            </div>
           )}
         </div>
       </div>
