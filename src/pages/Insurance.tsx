@@ -122,6 +122,16 @@ const preferredTimeOptions = [
 const currentYear = new Date().getFullYear();
 const purchaseYears = Array.from({ length: 20 }, (_, i) => String(currentYear - i));
 
+const getApiBase = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const base = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+    return base.endsWith('/api') ? base : `${base}/api`;
+  }
+  return '/api';
+};
+const API_BASE = getApiBase();
+
 // ─── Component Root ───────────────────────────────────────────────────────────
 export default function Insurance() {
   const { toast } = useToast();
@@ -168,7 +178,7 @@ export default function Insurance() {
     window.open(`https://wa.me/${WA_NUMBER}?text=${text}`, '_blank');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.fullName || !form.mobileNumber) {
@@ -181,14 +191,46 @@ export default function Insurance() {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const res = await fetch(`${API_BASE}/insurance/inquiry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vehicleCategory: activeTab,
+          insuranceRequirement: form.insuranceReq,
+          manufacturer: form.manufacturer,
+          model: form.model,
+          yearOfPurchase: form.yearOfPurchase,
+          kmsDriven: form.kmsDriven,
+          city: form.city,
+          fullName: form.fullName,
+          mobileNumber: form.mobileNumber,
+          email: form.email,
+          preferredTime: form.preferredTime,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Failed to submit inquiry.');
+      }
+
       setSubmitted(true);
       toast({
         title: '🎉 Request Submitted Successfully!',
         description: 'Our insurance expert will call you within 30 minutes.',
       });
-    }, 600);
+    } catch (err: any) {
+      console.error('Insurance inquiry submission error:', err);
+      toast({
+        title: 'Submission Failed',
+        description: err.message || 'Could not submit your inquiry. Please try again or connect via WhatsApp.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const activeDataset = activeTab === 'car' ? carDataset : bikeDataset;
