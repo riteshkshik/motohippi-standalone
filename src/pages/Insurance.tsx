@@ -235,7 +235,7 @@ export default function Insurance() {
 
   const activeDataset = activeTab === 'car' ? carDataset : bikeDataset;
   const currentManufacturers = Object.keys(activeDataset);
-  const availableModels = form.manufacturer ? (activeDataset[form.manufacturer] || defaultModels) : defaultModels;
+  const availableModels = form.manufacturer ? (activeDataset[form.manufacturer] || []) : [];
 
   return (
     <div className="min-h-screen bg-[#070A0F] text-foreground font-sans selection:bg-primary selection:text-black pb-24 overflow-x-hidden">
@@ -484,11 +484,15 @@ export default function Insurance() {
                       <label className="text-xs font-semibold text-white/70 flex items-center gap-1.5">
                         <span>Model*</span>
                       </label>
-                      <Select value={form.model} onValueChange={(v) => updateForm('model', v)}>
-                        <SelectTrigger className="bg-[#131A26] border-white/10 text-white rounded-xl h-12 focus:border-primary/50 text-xs sm:text-sm">
+                      <Select
+                        value={form.model}
+                        onValueChange={(v) => updateForm('model', v)}
+                        disabled={!form.manufacturer}
+                      >
+                        <SelectTrigger className="bg-[#131A26] border-white/10 text-white rounded-xl h-12 focus:border-primary/50 text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                           <div className="flex items-center gap-2">
                             {activeTab === 'car' ? <Car size={16} className="text-white/40" /> : <Bike size={16} className="text-white/40" />}
-                            <SelectValue placeholder="Select Model" />
+                            <SelectValue placeholder={form.manufacturer ? "Select Model" : "Select Manufacturer First"} />
                           </div>
                         </SelectTrigger>
                         <SelectContent className="bg-[#131A26] border-white/10 text-white text-xs sm:text-sm max-h-60 overflow-y-auto">
