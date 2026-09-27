@@ -5,6 +5,7 @@ import {
   TravelAnimation,
   FriendsAnimation,
 } from "@/components/PartnerOffersCarousel";
+import { QuickActions } from "@/components/home/QuickActions";
 
 // ─── Lottie Hero — Make Friends * Travel * Chill ──────────────────────────────
 const LOTTIE_PHASES = [
@@ -305,9 +306,12 @@ function EventAdCarousel() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
-    <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
+    <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-8 md:space-y-10 animate-in fade-in duration-500">
       {/* Make Friends * Travel * Chill — Lottie Hero */}
       <LottieHeroBanner />
+
+      {/* Quick Actions */}
+      <QuickActions />
 
       {/* Upcoming Events — Advertisement Carousel */}
       <EventAdCarousel />
