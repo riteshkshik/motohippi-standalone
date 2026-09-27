@@ -12,7 +12,6 @@ import {
   MessageSquare,
   User,
   Bell,
-  Mail,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -274,9 +273,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
           ))}
-        </nav>
 
-        <div className="p-3 border-t border-white/5 space-y-0.5">
+          {/* ── Section Divider 1 ── */}
+          <div className="my-2 border-t border-white/10" />
+
+          {/* ── Section 2: Cart ── */}
           <Link href="/cart">
             <span
               className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
@@ -292,12 +293,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   {cartCount}
                 </span>
               )}
+              {location === "/cart" && (
+                <motion.div
+                  layoutId="sidebar-pill"
+                  className="absolute inset-0 bg-primary/10 rounded-xl -z-10"
+                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                />
+              )}
             </span>
           </Link>
+
+          {/* ── Section Divider 2 ── */}
+          <div className="my-2 border-t border-white/10" />
+
+          {/* ── Section 3: Profile, Instagram, YouTube ── */}
           <Link href="/profile">
-            <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all cursor-pointer">
+            <span
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                location === "/profile"
+                  ? "bg-primary/12 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              }`}
+            >
               <User size={20} strokeWidth={1.8} />
               <span className="font-medium text-sm">Profile</span>
+              {location === "/profile" && (
+                <motion.div
+                  layoutId="sidebar-pill"
+                  className="absolute inset-0 bg-primary/10 rounded-xl -z-10"
+                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                />
+              )}
             </span>
           </Link>
           <a
@@ -326,17 +352,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <span className="font-medium text-sm">YouTube</span>
             </span>
           </a>
-          <a href="mailto:motohippi@yahoo.com">
-            <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-sky-400 hover:bg-sky-500/8 transition-all cursor-pointer group">
-              <Mail
-                size={20}
-                strokeWidth={1.8}
-                className="group-hover:text-sky-400 transition-colors"
-              />
-              <span className="font-medium text-sm">motohippi@yahoo.com</span>
-            </span>
-          </a>
-        </div>
+        </nav>
       </aside>
 
       {/* ── Icon-only sidebar — tablet md–lg ─────────────────────────────────── */}
@@ -390,9 +406,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
           ))}
-        </nav>
 
-        <div className="flex flex-col items-center p-2 border-t border-white/5 gap-1 pb-3">
+          {/* ── Section Divider 1 ── */}
+          <div className="w-8 my-1.5 border-t border-white/10" />
+
+          {/* ── Section 2: Cart ── */}
           <Link href="/cart" title="Cart">
             <span
               className={`relative w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
@@ -409,8 +427,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
               )}
             </span>
           </Link>
+
+          {/* ── Section Divider 2 ── */}
+          <div className="w-8 my-1.5 border-t border-white/10" />
+
+          {/* ── Section 3: Profile, Instagram, YouTube ── */}
           <Link href="/profile" title="Profile">
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/8 transition-all cursor-pointer">
+            <span
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+                location === "/profile"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/8"
+              }`}
+            >
               <User size={20} strokeWidth={1.8} />
             </span>
           </Link>
@@ -434,12 +463,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <YouTubeIcon size={20} />
             </span>
           </a>
-          <a href="mailto:motohippi@yahoo.com" title="motohippi@yahoo.com">
-            <span className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-sky-400 hover:bg-sky-500/8 transition-all cursor-pointer">
-              <Mail size={20} strokeWidth={1.8} />
-            </span>
-          </a>
-        </div>
+        </nav>
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────────────── */}
