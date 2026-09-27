@@ -125,6 +125,30 @@ const MOBILE_MAIN = [
   { href: "/feed", icon: Globe, label: "Explore" },
 ];
 
+// ─── Valid App Routes that should display the sidebar navigation ─────────────
+const VALID_SIDEBAR_ROUTES = [
+  "/home",
+  "/discover",
+  "/groups",
+  "/feed",
+  "/marketplace",
+  "/insurance",
+  "/messages",
+  "/search",
+  "/cart",
+  "/profile",
+  "/plans",
+  "/pricing",
+  "/payment-status",
+];
+
+const isValidAppRoute = (pathname: string) => {
+  const cleanPath = pathname.split("?")[0].split("#")[0];
+  return VALID_SIDEBAR_ROUTES.some(
+    (route) => cleanPath === route || cleanPath.startsWith(route + "/")
+  );
+};
+
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export function Shell({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, user } = useAuth();
@@ -135,6 +159,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
   });
   const cartCount =
     cart?.items?.reduce((s: number, i: any) => s + i.quantity, 0) ?? 0;
+
+  // Redirect logged-in users away from auth pages
+  React.useEffect(() => {
+    if (isLoggedIn && (location === "/login" || location === "/signup")) {
+      navigate("/home");
+    }
+  }, [isLoggedIn, location, navigate]);
+
+  // Non-app routes (random 404 URLs, auth pages, legal pages, landing) never show the sidebar
+  if (!isValidAppRoute(location)) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        {children}
+      </main>
+    );
+  }
 
   // ── Logged-out layout ───────────────────────────────────────────────────────
   if (!isLoggedIn) {

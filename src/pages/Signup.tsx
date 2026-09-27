@@ -16,8 +16,17 @@ export default function Signup() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const signupMutation = useSignup();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const [_, setLocation] = useLocation();
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      setLocation('/home');
+    }
+  }, [isLoggedIn, setLocation]);
+
+  if (isLoggedIn) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

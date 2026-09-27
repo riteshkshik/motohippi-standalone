@@ -15,8 +15,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const loginMutation = useLogin();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const [location, setLocation] = useLocation();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      setLocation('/home');
+    }
+  }, [isLoggedIn, setLocation]);
 
   // Handle Google OAuth callback: ?token=...&verified=true
   useEffect(() => {
@@ -32,6 +39,8 @@ export default function Login() {
       setErrorMsg('Google login failed. Please try again or use email/password.');
     }
   }, []);
+
+  if (isLoggedIn) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
