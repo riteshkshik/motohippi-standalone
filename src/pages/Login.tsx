@@ -62,7 +62,11 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    const apiBase = import.meta.env.VITE_API_URL || '/api';
+    const rawBase =
+      import.meta.env.VITE_API_URL ||
+      import.meta.env.VITE_API_BASE_URL ||
+      'https://api.motohippi.com/api';
+    const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
     window.location.href = `${apiBase}/auth/google`;
   };
 
