@@ -5,7 +5,7 @@ import { useLocation, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SiGoogle, SiApple } from 'react-icons/si';
+import { SiGoogle } from 'react-icons/si';
 import { Eye, EyeOff } from 'lucide-react';
 import { FloatingLoginIcons } from '@/components/FloatingLoginIcons';
 
@@ -178,23 +178,14 @@ export default function Login() {
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
               </div>
             </div>
-            <div className="mt-3 md:mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-3 md:mt-4">
               <Button
                 type="button"
                 variant="outline"
-                className="bg-black/20 border-white/10 h-11 text-sm font-medium"
+                className="w-full bg-black/20 hover:bg-white/5 border-white/10 h-11 text-sm font-medium flex items-center justify-center transition-all"
                 onClick={handleGoogleLogin}
               >
-                <SiGoogle className="mr-2 text-base" /> Google
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-black/20 border-white/10 h-11 text-sm font-medium"
-                disabled
-                title="Apple Sign-In coming soon"
-              >
-                <SiApple className="mr-2 text-base" /> Apple
+                <SiGoogle className="mr-2 text-base text-[#4285F4]" /> Continue with Google
               </Button>
             </div>
           </div>
