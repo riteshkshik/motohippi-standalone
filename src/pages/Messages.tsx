@@ -592,19 +592,12 @@ export default function Messages() {
                   <Button
                     onClick={() => setCreateGroupOpen(true)}
                     size="sm"
-                    className="w-full h-8 rounded-full bg-primary text-black font-black text-xs hover:bg-primary/90"
+                    className="w-full h-9 rounded-full bg-primary text-black font-black text-xs hover:bg-primary/90 shadow-[0_0_12px_rgba(214,255,47,0.2)]"
                   >
                     <Plus size={13} className="mr-1" /> Create a Group
                   </Button>
-                  <Button
-                    onClick={() => navigate('/groups')}
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-8 rounded-full border-white/10 text-xs text-white hover:bg-white/5"
-                  >
-                    Explore Communities
-                  </Button>
                 </div>
+
               </div>
             ) : (
               filteredGroups.map((group) => {

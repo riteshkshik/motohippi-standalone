@@ -112,16 +112,15 @@ const NAV_ITEMS = [
   { href: "/feed", icon: Globe, label: "Explore" },
   { href: "/marketplace", icon: ShoppingBag, label: "Shop", upcoming: true },
   { href: "/insurance", icon: Shield, label: "Insurance", cashback: true },
-  { href: "/messages", icon: MessageSquare, label: "DM's" },
-  { href: "/groups", icon: Users, label: "Groups" },
+  { href: "/messages", icon: MessageSquare, label: "Messages" },
 ];
 
-// Mobile bottom bar — primary 5 tabs
+// Mobile bottom bar — primary tabs
 const MOBILE_MAIN = [
-  { href: "/messages", icon: MessageSquare, label: "DM's" },
+  { href: "/home", icon: Home, label: "Home" },
+  { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/insurance", icon: Shield, label: "Insurance" },
   { href: "/discover", icon: Compass, label: "Find" },
-  { href: "/groups", icon: Users, label: "Groups" },
   { href: "/feed", icon: Globe, label: "Explore" },
 ];
 
@@ -129,7 +128,6 @@ const MOBILE_MAIN = [
 const VALID_SIDEBAR_ROUTES = [
   "/home",
   "/discover",
-  "/groups",
   "/feed",
   "/marketplace",
   "/insurance",
@@ -141,6 +139,7 @@ const VALID_SIDEBAR_ROUTES = [
   "/pricing",
   "/payment-status",
 ];
+
 
 const isValidAppRoute = (pathname: string) => {
   const cleanPath = pathname.split("?")[0].split("#")[0];

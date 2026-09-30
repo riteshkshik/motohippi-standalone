@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppProvider } from '@/contexts/AppContext';
 import { Shell } from '@/components/layout/Shell';
@@ -14,8 +14,8 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import Onboarding from '@/pages/Onboarding';
 import Home from '@/pages/Home';
 import Discover from '@/pages/Discover';
-import Groups from '@/pages/Groups';
 import Feed from '@/pages/Feed';
+
 import Marketplace from '@/pages/Marketplace';
 import Insurance from '@/pages/Insurance';
 import Messages from '@/pages/Messages';
@@ -79,7 +79,7 @@ function Router() {
         {/* Protected Routes */}
         <Route path="/home" component={Home} />
         <Route path="/discover" component={Discover} />
-        <Route path="/groups" component={Groups} />
+        <Route path="/groups">{() => <Redirect to="/messages" />}</Route>
         <Route path="/feed" component={Feed} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/insurance" component={Insurance} />

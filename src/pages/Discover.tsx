@@ -1860,7 +1860,7 @@ export default function Discover() {
     handleRefresh();
   };
 
-  const handleExploreGroups = () => navigate("/groups");
+  const handleExploreGroups = () => navigate("/messages");
   const handleCreateRide = () => navigate("/feed");
 
   const nearbyCount = riders.length;
