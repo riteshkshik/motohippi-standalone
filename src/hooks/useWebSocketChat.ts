@@ -9,15 +9,40 @@ export interface ChatMessage {
   createdAt: string;
 }
 
-export function useWebSocketChat(token: string | null, onNewMessage?: (msg: ChatMessage) => void) {
+export interface GroupChatMessage {
+  id: number;
+  groupId: number;
+  senderId: number;
+  content: string;
+  messageType?: string;
+  createdAt: string;
+  sender?: {
+    id: number;
+    name: string;
+    username?: string;
+    avatarUrl?: string;
+    vehicleType?: string;
+  };
+}
+
+export function useWebSocketChat(
+  token: string | null,
+  onNewMessage?: (msg: ChatMessage) => void,
+  onNewGroupMessage?: (msg: GroupChatMessage) => void
+) {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const onNewMessageRef = useRef(onNewMessage);
+  const onNewGroupMessageRef = useRef(onNewGroupMessage);
 
-  // Keep callback ref updated without triggering reconnect loops
+  // Keep callback refs updated without triggering reconnect loops
   useEffect(() => {
     onNewMessageRef.current = onNewMessage;
   }, [onNewMessage]);
+
+  useEffect(() => {
+    onNewGroupMessageRef.current = onNewGroupMessage;
+  }, [onNewGroupMessage]);
 
   const getWsUrl = useCallback(() => {
     if (!token) return null;
@@ -52,6 +77,8 @@ export function useWebSocketChat(token: string | null, onNewMessage?: (msg: Chat
         const data = JSON.parse(event.data);
         if (data.type === 'new_message' && data.message) {
           onNewMessageRef.current?.(data.message);
+        } else if (data.type === 'new_group_message' && data.message) {
+          onNewGroupMessageRef.current?.(data.message);
         }
       } catch (err) {
         console.error('❌ Failed to parse WebSocket message', err);
@@ -94,5 +121,21 @@ export function useWebSocketChat(token: string | null, onNewMessage?: (msg: Chat
     return false;
   }, []);
 
-  return { isConnected, sendMessage };
+  const sendGroupMessage = useCallback((groupId: number, content: string, messageType: string = 'text') => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'send_group_message',
+          groupId,
+          content,
+          messageType,
+        })
+      );
+      return true;
+    }
+    return false;
+  }, []);
+
+  return { isConnected, sendMessage, sendGroupMessage };
 }
+

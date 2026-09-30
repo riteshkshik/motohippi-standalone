@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useGetGroups, useJoinGroup, useLeaveGroup } from '@workspace/api-client-react';
 import { Link, useLocation } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Plus, Search, Shield, MapPin, AlertCircle, UserPlus, UserCheck, LogOut } from 'lucide-react';
+import { Users, Plus, Search, Shield, MapPin, AlertCircle, UserPlus, UserCheck, LogOut, MessageCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,17 +63,28 @@ function JoinButton({ groupId, groupName, isMember, isPrivate }: {
 
   if (localMember) {
     return (
-      <motion.button
-        onClick={handleClick}
-        disabled={pending}
-        whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border border-primary/40 text-primary bg-primary/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group disabled:opacity-60"
-      >
-        <span className="group-hover:hidden flex items-center gap-1.5"><UserCheck size={12} /> Joined</span>
-        <span className="hidden group-hover:flex items-center gap-1.5"><LogOut size={12} /> Leave</span>
-      </motion.button>
+      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+        <Link href={`/messages?groupId=${groupId}`}>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-black hover:bg-primary/90 transition-all shadow-[0_0_10px_rgba(214,255,47,0.2)]"
+          >
+            <MessageCircle size={12} /> Chat
+          </motion.button>
+        </Link>
+        <motion.button
+          onClick={handleClick}
+          disabled={pending}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold border border-primary/40 text-primary bg-primary/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all group disabled:opacity-60"
+        >
+          <span className="group-hover:hidden flex items-center gap-1"><UserCheck size={12} /> Joined</span>
+          <span className="hidden group-hover:flex items-center gap-1"><LogOut size={12} /> Leave</span>
+        </motion.button>
+      </div>
     );
   }
+
 
   if (requested || (isPrivate && joinMutation.isSuccess)) {
     return (

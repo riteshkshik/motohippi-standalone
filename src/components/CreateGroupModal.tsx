@@ -9,13 +9,21 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-// ─── Token helper (same pattern as Profile.tsx) ─────────────────────────────
-const getToken = () => localStorage.getItem('motohippi_token') || '';
-const authFetch = (url: string, opts: RequestInit = {}) =>
-  fetch(url, {
+// ─── Token & API helper (same pattern as Profile.tsx) ─────────────────────────────
+const getToken = () => localStorage.getItem('motohippi_token') || sessionStorage.getItem('motohippi_token') || '';
+const getApiBase = () => {
+  const apiBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  return apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+};
+const authFetch = (url: string, opts: RequestInit = {}) => {
+  const cleanBase = getApiBase();
+  const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
+  return fetch(fullUrl, {
     ...opts,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, ...(opts.headers || {}) },
   });
+};
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface FoundUser {
