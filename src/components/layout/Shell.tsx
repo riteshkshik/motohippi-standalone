@@ -67,6 +67,29 @@ const InstagramIcon = ({
   </svg>
 );
 
+// ─── Facebook icon (SVG) ───────────────────────────────────────────────────────
+const FacebookIcon = ({
+  size = 20,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
 // ─── Find Partner animated radar icon — primary feature highlight ─────────────
 const FindPartnerIcon = ({
   size = 22,
@@ -379,6 +402,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </span>
           </a>
           <a
+            href="https://www.facebook.com/motohippi"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/8 transition-all cursor-pointer group">
+              <FacebookIcon
+                size={20}
+                className="group-hover:text-blue-500 transition-colors"
+              />
+              <span className="font-medium text-sm">Facebook</span>
+            </span>
+          </a>
+          <a
             href="https://www.youtube.com/@Motohippi_Official"
             target="_blank"
             rel="noopener noreferrer"
@@ -490,6 +526,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
           >
             <span className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-pink-400 hover:bg-pink-500/8 transition-all cursor-pointer">
               <InstagramIcon size={20} />
+            </span>
+          </a>
+          <a
+            href="https://www.facebook.com/motohippi"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Facebook"
+          >
+            <span className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/8 transition-all cursor-pointer">
+              <FacebookIcon size={20} />
             </span>
           </a>
           <a

@@ -1,8 +1,105 @@
-import React, { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link, useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+
+// ─── Social Icons ─────────────────────────────────────────────────────────────
+const InstagramIcon = ({
+  size = 20,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const FacebookIcon = ({
+  size = 20,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const YouTubeIcon = ({
+  size = 20,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <rect x="2" y="5" width="20" height="14" rx="4" ry="4" />
+    <polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const SOCIAL_LINKS = [
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/motohippi?utm_source=qr",
+    icon: InstagramIcon,
+    hoverClass:
+      "hover:text-pink-400 hover:border-pink-500/40 hover:bg-pink-500/10",
+    textHoverClass: "group-hover:text-pink-400",
+  },
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/motohippi",
+    icon: FacebookIcon,
+    hoverClass:
+      "hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10",
+    textHoverClass: "group-hover:text-blue-400",
+  },
+  {
+    name: "YouTube",
+    href: "https://www.youtube.com/@Motohippi_Official",
+    icon: YouTubeIcon,
+    hoverClass:
+      "hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/10",
+    textHoverClass: "group-hover:text-red-400",
+  },
+];
 
 export default function Landing() {
   const { isLoggedIn } = useAuth();
@@ -10,7 +107,7 @@ export default function Landing() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      setLocation('/home');
+      setLocation("/home");
     }
   }, [isLoggedIn, setLocation]);
 
@@ -18,13 +115,77 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+      {/* Navigation Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <img
+              src="/logo.png"
+              alt="MotoHippi"
+              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl object-cover shadow-sm shrink-0"
+            />
+            <div className="leading-tight shrink-0">
+              <span className="text-lg sm:text-xl font-bold tracking-tighter text-white block">
+                MotoHippi
+              </span>
+              <span className="text-[10px] text-primary tracking-widest uppercase hidden sm:block">
+                motohippi.com
+              </span>
+            </div>
+          </Link>
+
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Social Links in Header - visible on desktop/tablet to prevent mobile crowding */}
+            <div className="hidden md:flex items-center gap-1.5 border-r border-white/10 pr-3">
+              {SOCIAL_LINKS.map((item) => (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={item.name}
+                  aria-label={item.name}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white/70 border border-white/10 transition-all ${item.hoverClass}`}
+                >
+                  <item.icon size={16} />
+                </a>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <Link href="/login">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:text-primary transition-colors text-xs sm:text-sm font-medium px-2.5 sm:px-3 h-8 sm:h-9"
+                >
+                  Log In
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button
+                  size="sm"
+                  className="rounded-full px-3.5 sm:px-5 h-8 sm:h-9 font-bold bg-primary text-black hover:bg-primary/90 text-xs sm:text-sm shrink-0"
+                >
+                  Join Free
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center pt-20 pb-32">
+      <section className="relative min-h-[90vh] flex items-center justify-center pt-28 pb-32">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black/25 z-10" />
-          <img src="/hero_bg.png" alt="Riders gathered at sunset overlook" className="w-full h-full object-cover object-center" />
+          <img
+            src="/hero_bg.png"
+            alt="Riders gathered at sunset overlook"
+            className="w-full h-full object-cover object-center"
+          />
         </div>
-        
+
         <div className="container mx-auto px-4 z-20 text-center flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -32,76 +193,126 @@ export default function Landing() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-6 uppercase drop-shadow-2xl">
-              Find Your <span className="text-primary">Ride Mate.</span><br />
-              Chill Trips <span className="text-primary">Thrills.</span>
+              Find Your <span className="text-primary">Ride Mate.</span>
+              <br />
+              Meet Travel <span className="text-primary">Nirvana.</span>
             </h1>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 font-medium">
-              The ultimate platform for motorcycle riders, car enthusiasts, and overlanders. Connect, discover, and ride into the unknown.
-            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup">
-                <Button size="lg" className="text-lg px-8 h-14 rounded-full font-bold">Join Free</Button>
+                <Button
+                  size="lg"
+                  className="text-lg px-8 h-14 rounded-full font-bold"
+                >
+                  Join Free
+                </Button>
               </Link>
               <Link href="/login">
-                <Button size="lg" variant="glass" className="text-lg px-8 h-14 rounded-full font-bold">Log In</Button>
+                <Button
+                  size="lg"
+                  variant="glass"
+                  className="text-lg px-8 h-14 rounded-full font-bold"
+                >
+                  Log In
+                </Button>
               </Link>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Features Showcase */}
-      <section className="py-32 relative z-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Everything you need to <span className="text-primary">Ride</span>.</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">From finding the perfect travel partner to getting your gear and insurance sorted, MotoHippi has it all.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: 'Discover Riders', desc: 'Swipe through profiles of riders near you. Filter by vehicle type, adventure level, and more.', gradient: 'from-primary/30 to-emerald-500/20', emoji: '🏍️' },
-              { title: 'Plan Trips', desc: 'Create detailed itineraries, manage budgets, split costs, and invite friends to join the adventure.', gradient: 'from-blue-500/30 to-purple-500/20', emoji: '🗺️' },
-              { title: 'Marketplace', desc: 'Buy and sell premium gear, from helmets to camping equipment. Safe and secure.', gradient: 'from-amber-500/30 to-orange-500/20', emoji: '🪖' }
-            ].map((f, i) => (
-              <div key={i} className="glass-card overflow-hidden group">
-                <div className="h-48 overflow-hidden relative">
-                  <div className={`w-full h-full bg-gradient-to-br ${(f as any).gradient} flex items-center justify-center`}>
-                    <span className="text-7xl opacity-60 group-hover:scale-110 transition-transform duration-500">{(f as any).emoji}</span>
-                  </div>
-                </div>
-                <div className="p-6 relative z-20">
-                  <h3 className="text-xl font-bold mb-2">{f.title}</h3>
-                  <p className="text-muted-foreground text-sm">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="bg-background border-t border-white/5 py-12 relative z-20">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
             <div>
-              <h2 className="text-2xl font-bold tracking-tighter">MotoHippi</h2>
-              <p className="text-muted-foreground text-sm mt-2">The ultimate ecosystem for road travelers.</p>
+              <div className="flex items-center gap-2.5 mb-2">
+                <img
+                  src="/logo.png"
+                  alt="MotoHippi"
+                  className="h-8 w-8 rounded-lg object-cover"
+                />
+                <h2 className="text-2xl font-bold tracking-tighter">MotoHippi</h2>
+              </div>
+              <p className="text-muted-foreground text-sm max-w-sm">
+                The ultimate ecosystem for road travelers. Connect, discover, and ride into the unknown.
+              </p>
             </div>
-            <div className="flex flex-col items-center md:items-end gap-2 text-sm text-muted-foreground">
-              <p>Contact: <a href="mailto:MotoHippi@yahoo.com" className="text-white hover:text-primary transition-colors">MotoHippi@yahoo.com</a></p>
-              <p>WhatsApp: <a href="https://wa.me/919999207570" className="text-white hover:text-primary transition-colors">+91-9999207570</a></p>
+
+            {/* Social Links Section */}
+            <div className="flex flex-col items-start sm:items-center lg:items-start gap-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Follow Us
+              </span>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {SOCIAL_LINKS.map((item) => (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 transition-all text-muted-foreground ${item.hoverClass}`}
+                  >
+                    <item.icon size={18} className="transition-transform group-hover:scale-110" />
+                    <span className={`text-xs font-medium transition-colors ${item.textHoverClass}`}>
+                      {item.name}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="flex flex-col items-start lg:items-end gap-2 text-sm text-muted-foreground">
+              <p>
+                Contact:{" "}
+                <a
+                  href="mailto:MotoHippi@yahoo.com"
+                  className="text-white hover:text-primary transition-colors"
+                >
+                  MotoHippi@yahoo.com
+                </a>
+              </p>
+              <p>
+                WhatsApp:{" "}
+                <a
+                  href="https://wa.me/919999207570"
+                  className="text-white hover:text-primary transition-colors"
+                >
+                  +91-9999207570
+                </a>
+              </p>
             </div>
           </div>
+
           <div className="mt-8 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <div>
               &copy; {new Date().getFullYear()} MotoHippi. All rights reserved.
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-              <Link href="/terms" className="hover:text-primary transition-colors">Terms &amp; Conditions</Link>
-              <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
-              <Link href="/refund-policy" className="hover:text-primary transition-colors">Refund &amp; Return Policy</Link>
-              <Link href="/shipping-policy" className="hover:text-primary transition-colors">Shipping Policy</Link>
+              <Link
+                href="/terms"
+                className="hover:text-primary transition-colors"
+              >
+                Terms &amp; Conditions
+              </Link>
+              <Link
+                href="/privacy"
+                className="hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/refund-policy"
+                className="hover:text-primary transition-colors"
+              >
+                Refund &amp; Return Policy
+              </Link>
+              <Link
+                href="/shipping-policy"
+                className="hover:text-primary transition-colors"
+              >
+                Shipping Policy
+              </Link>
             </div>
           </div>
         </div>
