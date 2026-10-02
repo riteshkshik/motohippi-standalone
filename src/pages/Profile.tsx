@@ -235,7 +235,6 @@ function ShareModal({ profile, onClose }: { profile: any; onClose: () => void })
     const urls: Record<string, string> = {
       whatsapp: `https://wa.me/?text=${encodedText}`,
       twitter: `https://twitter.com/intent/tweet?text=${encodedText}`,
-      telegram: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out my MotoHippi profile! 🏍️\n\nDownload MotoHippi to find ride partners near you.`)}`,
     };
     window.open(urls[platform], '_blank', 'noopener,noreferrer');
   };
@@ -283,7 +282,7 @@ function ShareModal({ profile, onClose }: { profile: any; onClose: () => void })
         {/* Social share buttons */}
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Share via</p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <button onClick={() => shareVia('whatsapp')} className="flex flex-col items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl hover:border-green-500/40 hover:bg-green-500/5 transition-all group">
               <div className="w-10 h-10 rounded-full bg-[#25D366]/15 flex items-center justify-center group-hover:bg-[#25D366]/25 transition-colors">
                 <MessageCircle size={20} className="text-[#25D366]" />
@@ -295,12 +294,6 @@ function ShareModal({ profile, onClose }: { profile: any; onClose: () => void })
                 <Twitter size={20} className="text-sky-400" />
               </div>
               <span className="text-xs font-semibold text-muted-foreground group-hover:text-white transition-colors">Twitter</span>
-            </button>
-            <button onClick={() => shareVia('telegram')} className="flex flex-col items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl hover:border-blue-400/40 hover:bg-blue-400/5 transition-all group">
-              <div className="w-10 h-10 rounded-full bg-blue-400/15 flex items-center justify-center group-hover:bg-blue-400/25 transition-colors">
-                <ExternalLink size={20} className="text-blue-400" />
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground group-hover:text-white transition-colors">Telegram</span>
             </button>
           </div>
         </div>
