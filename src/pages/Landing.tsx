@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { BikeCursor } from "@/components/BikeCursor";
 
 // ─── Social Icons ─────────────────────────────────────────────────────────────
 const InstagramIcon = ({
@@ -170,6 +171,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+      {/* Interactive Running Bike Cursor */}
+      <BikeCursor />
+
       {/* Navigation Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-white/5">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-2">
