@@ -65,7 +65,7 @@ function EmptyCart() {
       </div>
       {/* Popular categories */}
       <div className="flex flex-wrap justify-center gap-2 mt-2">
-        {['Biker Equipments', 'Car Equipments', 'Camping Equipments', 'Action Cam'].map(cat => (
+        {['SENA', 'Action Cam', 'Drone'].map(cat => (
           <Link key={cat} href="/marketplace">
             <span className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-muted-foreground hover:text-white hover:border-primary/40 transition-all cursor-pointer">{cat}</span>
           </Link>

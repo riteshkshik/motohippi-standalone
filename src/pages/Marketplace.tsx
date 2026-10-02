@@ -10,11 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProductDetailDrawer from '@/components/ProductDetailDrawer';
 
 const CATEGORIES = [
-  { label: 'All',                  match: null },
-  { label: 'Biker Equipments',     match: ['biker', 'helmet', 'jacket', 'glove', 'boot', 'gear', 'riding'] },
-  { label: 'Car Equipments',       match: ['car', 'auto', 'dash cam', 'tyre', 'tool'] },
-  { label: 'Camping Equipments',   match: ['camping', 'camp', 'tent', 'sleeping', 'luggage'] },
-  { label: 'Action Cam',           match: ['action cam', 'gopro', 'camera', 'mount', 'drone'] },
+  { label: 'SENA', match: ['sena', 'intercom', 'bluetooth', 'headset', 'mesh', 'communication'] },
+  { label: 'Action Cam', match: ['action cam', 'gopro', 'insta360', 'camera', 'mount'] },
+  { label: 'Drone', match: ['drone', 'dji', 'quadcopter', 'aerial', 'mavic', 'avata'] },
 ];
 
 export default function Marketplace() {
@@ -23,7 +21,7 @@ export default function Marketplace() {
   const { data: cart } = useGetCart();
   const { mutate: addToCart } = useAddToCart();
 
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState('SENA');
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
@@ -35,7 +33,11 @@ export default function Marketplace() {
     const cat = CATEGORIES.find(c => c.label === activeCategory);
     if (!cat || !cat.match) return products;
     return products.filter(p =>
-      cat.match!.some(m => p.category?.toLowerCase().includes(m))
+      cat.match!.some(m =>
+        p.category?.toLowerCase().includes(m) ||
+        p.name?.toLowerCase().includes(m) ||
+        p.description?.toLowerCase().includes(m)
+      )
     );
   }, [products, activeCategory]);
 
@@ -83,7 +85,9 @@ export default function Marketplace() {
           {CATEGORIES.map(cat => {
             const active = activeCategory === cat.label;
             const ICONS: Record<string, string> = {
-              All: '🛒', 'Biker Equipments': '🏍️', 'Car Equipments': '🚗', 'Camping Equipments': '⛺', 'Action Cam': '🎥',
+              SENA: '🎧',
+              'Action Cam': '🎥',
+              Drone: '🛸',
             };
             return (
               <button
@@ -97,8 +101,8 @@ export default function Marketplace() {
               >
                 <span className="text-base leading-none">{ICONS[cat.label]}</span>
                 {cat.label}
-                {active && cat.label !== 'All' && (
-                  <span className={`ml-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${active ? 'bg-black/20' : 'bg-white/10'}`}>
+                {active && (
+                  <span className="ml-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-black/20">
                     {filtered.length}
                   </span>
                 )}
@@ -121,8 +125,8 @@ export default function Marketplace() {
             <ShoppingBag size={28} className="text-muted-foreground" />
           </div>
           <p className="text-white font-bold text-lg">No products in this category yet</p>
-          <button onClick={() => setActiveCategory('All')} className="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm hover:bg-primary/90 transition-colors">
-            Browse All
+          <button onClick={() => setActiveCategory('SENA')} className="px-5 py-2 rounded-full bg-primary text-black font-bold text-sm hover:bg-primary/90 transition-colors">
+            Browse SENA
           </button>
         </div>
       ) : (

@@ -659,7 +659,7 @@ export default function Profile() {
     <>
       <div className="min-h-screen bg-background pb-20">
         {/* ── Cover Photo ── */}
-        <div className="h-[30vh] md:h-[40vh] relative w-full bg-card group">
+        <div className="h-[19vh] sm:h-[26vh] md:h-[38vh] relative w-full bg-card group">
           <img
             src={profile.coverUrl || ''}
             alt="Cover"
@@ -690,16 +690,16 @@ export default function Profile() {
         </div>
 
         {/* ── Profile content ── */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-24 z-10">
-          <div className="flex flex-col md:flex-row gap-6 md:items-end mb-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-14 sm:-mt-18 md:-mt-22 z-10">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-6 md:items-end mb-3.5 md:mb-6">
             {/* Avatar with edit button */}
             <div className="relative group w-fit">
-              <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background rounded-full bg-card shadow-2xl">
+              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-36 md:w-36 border-4 border-background rounded-full bg-card shadow-2xl">
                 <AvatarImage src={profile.avatarUrl || ''} className="object-cover" />
-                <AvatarFallback className="text-4xl font-black">{profile.name?.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="text-3xl sm:text-4xl font-black">{profile.name?.charAt(0)}</AvatarFallback>
               </Avatar>
               {profile.isVerified && (
-                <div className="absolute bottom-2 right-2 bg-blue-500 rounded-full w-8 h-8 flex items-center justify-center border-4 border-background text-white text-sm font-bold shadow-lg">✓</div>
+                <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 bg-blue-500 rounded-full w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex items-center justify-center border-2 sm:border-4 border-background text-white text-xs sm:text-sm font-bold shadow-lg">✓</div>
               )}
               {/* Avatar edit overlay */}
               <button
@@ -707,51 +707,51 @@ export default function Profile() {
                 className="absolute inset-0 rounded-full bg-black/0 hover:bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
               >
                 <div className="flex flex-col items-center gap-1">
-                  <Camera size={20} className="text-white" />
-                  <span className="text-[10px] text-white font-bold">Edit</span>
+                  <Camera size={18} className="text-white" />
+                  <span className="text-[9px] text-white font-bold">Edit</span>
                 </div>
               </button>
             </div>
 
-            <div className="flex-1 pb-2">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
+            <div className="flex-1 pb-1">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight flex items-center gap-2.5">
                 {profile.name}
                 {profile.isVerified && <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-[10px]">✓ Verified</Badge>}
               </h1>
-              <p className="text-muted-foreground font-medium mt-1 flex items-center gap-2 flex-wrap">
+              <p className="text-muted-foreground text-xs sm:text-sm font-medium mt-0.5 flex items-center gap-2 flex-wrap">
                 <span className="text-primary/80">@{username}</span>
                 {profile.city && (
-                  <><span className="text-white/20">·</span><span className="flex items-center gap-1"><MapPin size={14} className="text-primary" />{profile.city}</span></>
+                  <><span className="text-white/20">·</span><span className="flex items-center gap-1"><MapPin size={13} className="text-primary" />{profile.city}</span></>
                 )}
-                {profile.country && <><span className="text-white/20">·</span><Globe size={14} className="text-primary/60" /><span>{profile.country}</span></>}
+                {profile.country && <><span className="text-white/20">·</span><Globe size={13} className="text-primary/60" /><span>{profile.country}</span></>}
               </p>
               {profile.bio && (
-                <p className="text-sm text-white/70 mt-2 max-w-lg leading-relaxed">{profile.bio}</p>
+                <p className="text-xs sm:text-sm text-white/70 mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
               )}
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-3 pb-2 flex-wrap">
+            <div className="flex gap-2.5 pt-1 pb-1 flex-wrap">
               <button
                 onClick={() => setShowEdit(true)}
-                className="flex items-center gap-2 h-10 px-5 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 text-sm font-bold transition-all"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 text-xs sm:text-sm font-bold transition-all"
               >
-                <Edit3 size={15} /> Edit Profile
+                <Edit3 size={14} /> Edit Profile
               </button>
               <button
                 onClick={() => setShowShare(true)}
-                className="h-10 w-10 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 flex items-center justify-center transition-all"
+                className="h-9 w-9 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 flex items-center justify-center transition-all"
               >
-                <Share2 size={16} />
+                <Share2 size={15} />
               </button>
             </div>
           </div>
 
           {/* ── Grid layout ── */}
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-3.5 md:gap-8">
             {/* Left: Info card */}
-            <div className="space-y-6">
-              <div className="glass-card p-6 space-y-6">
+            <div className="space-y-4 md:space-y-6">
+              <div className="glass-card p-3.5 sm:p-5 space-y-3 sm:space-y-4">
                 {/* Stats row */}
                 <div className="grid grid-cols-3 divide-x divide-white/8">
                   {[
@@ -759,41 +759,41 @@ export default function Profile() {
                     { value: profile.followingCount ?? 0, label: 'Following' },
                     { value: profile.tripsCount ?? 0,     label: 'Trips'     },
                   ].map(({ value, label }) => (
-                    <div key={label} className="flex flex-col items-center justify-center py-2 px-1 gap-0.5">
-                      <span className="text-2xl font-black text-white leading-none tabular-nums">
+                    <div key={label} className="flex flex-col items-center justify-center py-1 px-1 gap-0.5">
+                      <span className="text-xl sm:text-2xl font-black text-white leading-none tabular-nums">
                         {typeof value === 'number' && value >= 1000
                           ? `${(value / 1000).toFixed(1)}k`
                           : value}
                       </span>
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-1">{label}</span>
+                      <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-0.5">{label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="border-t border-white/5 pt-6 space-y-5">
+                <div className="border-t border-white/5 pt-3 sm:pt-4 space-y-2.5 sm:space-y-3">
                   {/* Details */}
-                  <div className="space-y-3">
-                    <h3 className="font-bold text-xs text-muted-foreground uppercase tracking-widest">Rider Details</h3>
+                  <div className="space-y-1.5">
+                    <h3 className="font-bold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-widest">Rider Details</h3>
                     {[
                       { label: 'Vehicle', value: profile.vehicleType || 'Motorcycle' },
                       { label: 'Level', value: profile.adventureLevel || 'Advanced' },
                       { label: 'Style', value: profile.travelStyle || 'Explorer' },
                       { label: 'Member since', value: new Date(profile.createdAt || Date.now()).getFullYear().toString() },
                     ].map(({ label, value }) => (
-                      <div key={label} className="flex justify-between items-center text-sm">
+                      <div key={label} className="flex justify-between items-center text-xs sm:text-sm py-0.5">
                         <span className="text-muted-foreground">{label}</span>
-                        <Badge variant="outline" className="border-white/10 uppercase text-[10px] font-bold">{value}</Badge>
+                        <Badge variant="outline" className="border-white/10 uppercase text-[9px] sm:text-[10px] font-bold px-2 py-0.5">{value}</Badge>
                       </div>
                     ))}
                   </div>
 
                   {/* Interests */}
                   {profile.interests && profile.interests.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-xs text-muted-foreground uppercase tracking-widest">Interests</h3>
+                    <div className="space-y-1.5">
+                      <h3 className="font-bold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-widest">Interests</h3>
                       <div className="flex flex-wrap gap-1.5">
                         {profile.interests.map((interest: string) => (
-                          <span key={interest} className="px-2.5 py-1 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold rounded-full">{interest}</span>
+                          <span key={interest} className="px-2.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold rounded-full">{interest}</span>
                         ))}
                       </div>
                     </div>
@@ -802,10 +802,10 @@ export default function Profile() {
                   {/* Edit nudge */}
                   <button
                     onClick={() => setShowEdit(true)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/4 border border-white/8 hover:border-primary/30 hover:bg-white/6 transition-all group"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/4 border border-white/8 hover:border-primary/30 hover:bg-white/6 transition-all group"
                   >
                     <span className="text-xs font-semibold text-muted-foreground group-hover:text-white transition-colors">Complete your profile</span>
-                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <ChevronRight size={13} className="text-muted-foreground group-hover:text-primary transition-colors" />
                   </button>
                 </div>
               </div>
@@ -890,17 +890,17 @@ function PostsGrid({ profile }: { profile: any }) {
   return (
     <div className="w-full" onClick={closeMenu}>
       {/* Header row */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-5">
+      <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 sm:pb-4 sm:mb-5">
         <div className="flex items-center gap-2">
           <Grid3x3 size={17} className="text-primary" />
-          <span className="font-black text-base">Posts</span>
+          <span className="font-black text-sm sm:text-base">Posts</span>
           {myPosts.length > 0 && (
             <span className="text-xs text-muted-foreground font-medium ml-1">({myPosts.length})</span>
           )}
         </div>
         <button
           onClick={e => { e.stopPropagation(); setCreateOpen(true); }}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary text-black text-xs font-black hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-primary text-black text-xs font-black hover:bg-primary/90 transition-colors"
         >
           <Plus size={14} /> New Post
         </button>
