@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -101,15 +101,70 @@ const SOCIAL_LINKS = [
   },
 ];
 
+// ─── Hero Carousel Slides ─────────────────────────────────────────────────────
+const HERO_SLIDES = [
+  {
+    desktop: "/hero_bg.png",
+    mobile: "/hero_bg_mobile.png",
+    alt: "Overland riders and sunset campsite",
+  },
+  {
+    desktop: "/hero_bg_2.jpeg",
+    mobile: "/hero_bg_2_mobile.png",
+    alt: "Adventure journey into the open road",
+  },
+];
+
 export default function Landing() {
   const { isLoggedIn } = useAuth();
   const [_, setLocation] = useLocation();
+
+  // 3D parallax on cursor move across the full image
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+
+  // Carousel slide index (3-second auto-rotation)
+  const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
     if (isLoggedIn) {
       setLocation("/home");
     }
   }, [isLoggedIn, setLocation]);
+
+  // Preload carousel images for instant transitions
+  useEffect(() => {
+    HERO_SLIDES.forEach((slide) => {
+      const imgDesktop = new Image();
+      imgDesktop.src = slide.desktop;
+      const imgMobile = new Image();
+      imgMobile.src = slide.mobile;
+    });
+  }, []);
+
+  // Auto-advance carousel every 3 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      const normX = (e.clientX - innerWidth / 2) / (innerWidth / 2);
+      const normY = (e.clientY - innerHeight / 2) / (innerHeight / 2);
+
+      // Subtle, elegant 3D tilt tracking the cursor
+      const maxTilt = 7;
+      setRotateX(-normY * maxTilt);
+      setRotateY(normX * maxTilt);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   if (isLoggedIn) return null;
 
@@ -135,7 +190,7 @@ export default function Landing() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Social Links in Header - visible on desktop/tablet to prevent mobile crowding */}
+            {/* Social Links in Header */}
             <div className="hidden md:flex items-center gap-1.5 border-r border-white/10 pr-3">
               {SOCIAL_LINKS.map((item) => (
                 <a
@@ -175,24 +230,62 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center pt-28 pb-32">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-black/25 z-10" />
-          <img
-            src="/hero_bg.png"
-            alt="Riders gathered at sunset overlook"
-            className="w-full h-full object-cover object-center"
-          />
-        </div>
+      {/* Hero Section with FULL Image Carousel and 3D Cursor Parallax */}
+      <section
+        className="relative min-h-[90vh] flex items-center justify-center pt-20 pb-32 overflow-hidden"
+        style={{ perspective: 1200 }}
+      >
+        {/* Full Image Background with 3D cursor tilt */}
+        <motion.div
+          className="absolute inset-0 z-0 origin-center pointer-events-none"
+          animate={{
+            rotateX: rotateX,
+            rotateY: rotateY,
+            scale: 1.08,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 160,
+            damping: 24,
+            mass: 0.5,
+          }}
+          style={{ transformStyle: "preserve-3d" }}
+        >
+          <div className="absolute inset-0 bg-black/30 z-10" />
 
+          {/* 3-Second Crossfading Carousel */}
+          <AnimatePresence>
+            <motion.div
+              key={activeSlide}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: "easeInOut" }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <picture className="w-full h-full block">
+                <source
+                  media="(max-width: 767px)"
+                  srcSet={HERO_SLIDES[activeSlide].mobile}
+                />
+                <img
+                  src={HERO_SLIDES[activeSlide].desktop}
+                  alt={HERO_SLIDES[activeSlide].alt}
+                  className="w-full h-full object-cover object-center"
+                />
+              </picture>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Hero Content */}
         <div className="container mx-auto px-4 z-20 text-center flex flex-col items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white mb-6 uppercase drop-shadow-2xl">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter text-white mb-6 uppercase drop-shadow-2xl">
               Find Your <span className="text-primary">Ride Mate.</span>
               <br />
               Meet Travel <span className="text-primary">Nirvana.</span>
