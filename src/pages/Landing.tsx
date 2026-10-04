@@ -86,7 +86,7 @@ const SOCIAL_LINKS = [
   },
   {
     name: "Facebook",
-    href: "https://www.facebook.com/motohippi",
+    href: "https://www.facebook.com/groups/1746306876591034",
     icon: FacebookIcon,
     hoverClass:
       "hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10",
@@ -328,10 +328,13 @@ export default function Landing() {
                   alt="MotoHippi"
                   className="h-8 w-8 rounded-lg object-cover"
                 />
-                <h2 className="text-2xl font-bold tracking-tighter">MotoHippi</h2>
+                <h2 className="text-2xl font-bold tracking-tighter">
+                  MotoHippi
+                </h2>
               </div>
               <p className="text-muted-foreground text-sm max-w-sm">
-                The ultimate ecosystem for road travelers. Connect, discover, and ride into the unknown.
+                The ultimate ecosystem for road travelers. Connect, discover,
+                and ride into the unknown.
               </p>
             </div>
 
@@ -349,8 +352,13 @@ export default function Landing() {
                     rel="noopener noreferrer"
                     className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 transition-all text-muted-foreground ${item.hoverClass}`}
                   >
-                    <item.icon size={18} className="transition-transform group-hover:scale-110" />
-                    <span className={`text-xs font-medium transition-colors ${item.textHoverClass}`}>
+                    <item.icon
+                      size={18}
+                      className="transition-transform group-hover:scale-110"
+                    />
+                    <span
+                      className={`text-xs font-medium transition-colors ${item.textHoverClass}`}
+                    >
                       {item.name}
                     </span>
                   </a>

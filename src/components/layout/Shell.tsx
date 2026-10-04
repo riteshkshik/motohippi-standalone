@@ -163,11 +163,10 @@ const VALID_SIDEBAR_ROUTES = [
   "/payment-status",
 ];
 
-
 const isValidAppRoute = (pathname: string) => {
   const cleanPath = pathname.split("?")[0].split("#")[0];
   return VALID_SIDEBAR_ROUTES.some(
-    (route) => cleanPath === route || cleanPath.startsWith(route + "/")
+    (route) => cleanPath === route || cleanPath.startsWith(route + "/"),
   );
 };
 
@@ -402,7 +401,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </span>
           </a>
           <a
-            href="https://www.facebook.com/motohippi"
+            href="https://www.facebook.com/groups/1746306876591034"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -529,7 +528,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </span>
           </a>
           <a
-            href="https://www.facebook.com/motohippi"
+            href="https://www.facebook.com/groups/1746306876591034"
             target="_blank"
             rel="noopener noreferrer"
             title="Facebook"
