@@ -171,10 +171,9 @@ function LottieHeroBanner() {
 
   return (
     <div
-      className="relative w-full rounded-2xl overflow-hidden"
+      className="relative w-full rounded-2xl overflow-hidden backdrop-blur-xl border border-white/10"
       style={{
-        background: "#0d0d0d",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(13, 16, 24, 0.75)",
         minHeight: 200,
       }}
     >
@@ -306,15 +305,34 @@ function EventAdCarousel() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
-    <div className="px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-8 md:space-y-10 animate-in fade-in duration-500">
-      {/* Make Friends * Travel * Chill — Lottie Hero */}
-      <LottieHeroBanner />
+    <div className="relative min-h-screen bg-[#070A0F] text-foreground font-sans overflow-x-hidden pb-16">
+      {/* ── Signature Topographic Contour Background (Matches Insurance Page) ── */}
+      <div className="absolute top-0 left-0 right-0 h-[650px] md:h-[750px] z-0 overflow-hidden pointer-events-none border-b border-white/5">
+        <img
+          src="/hero_bg.png"
+          alt="MotoHippi Background"
+          className="w-full h-full object-cover object-center opacity-30 scale-105 filter blur-[1px]"
+        />
+        {/* Horizontal Gradient Mask */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#070A0F] via-[#070A0F]/85 to-[#070A0F]/90" />
+        {/* Bottom Fade Mask (Smooth fade into the dark page background) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#070A0F] via-transparent to-transparent" />
+        {/* Radial Ambient Glow */}
+        <div className="absolute top-1/4 left-1/3 w-[450px] h-[450px] bg-primary/10 rounded-full blur-[140px]" />
+      </div>
 
-      {/* Quick Actions */}
-      <QuickActions />
+      {/* ── Page Content ── */}
+      <div className="relative z-10 px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-8 md:space-y-10 animate-in fade-in duration-500">
+        {/* Make Friends * Travel * Chill — Lottie Hero */}
+        <LottieHeroBanner />
 
-      {/* Upcoming Events — Advertisement Carousel */}
-      <EventAdCarousel />
+        {/* Quick Actions */}
+        <QuickActions />
+
+        {/* Upcoming Events — Advertisement Carousel */}
+        <EventAdCarousel />
+      </div>
     </div>
   );
 }
+
