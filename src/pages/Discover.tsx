@@ -248,29 +248,21 @@ const MOCK_BIO = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function calcCompatibility(rider: any, filters: Filters): number {
-  let score = 45;
+  let score = 55;
   const dist = rider.distanceKm ?? 100;
   if (dist < 25) score += 20;
   else if (dist < 75) score += 14;
   else if (dist < 150) score += 8;
   else if (dist < 300) score += 4;
-  if (filters.vehicles.length && rider.vehicleType) {
-    if (
-      filters.vehicles.some((v: string) =>
-        rider.vehicleType.toLowerCase().includes(v),
-      )
-    )
-      score += 15;
-  } else score += 8;
   if (filters.ridingStyles.length && rider.travelStyle) {
     if (
       filters.ridingStyles.some((s: string) =>
         rider.travelStyle.toLowerCase().includes(s.toLowerCase()),
       )
     )
-      score += 12;
-  } else score += 6;
-  if (rider.interests?.length) score += Math.min(rider.interests.length * 2, 8);
+      score += 15;
+  } else score += 8;
+  if (rider.interests?.length) score += Math.min(rider.interests.length * 2, 10);
   return Math.min(score, 99);
 }
 
@@ -278,14 +270,6 @@ function applyFilters(candidates: any[], filters: Filters): any[] {
   return candidates.filter((c) => {
     if (c.distanceKm > filters.radius) return false;
     if (filters.verifiedOnly && !c.isVerified) return false;
-    if (filters.vehicles.length && !filters.vehicles.includes("any")) {
-      if (
-        !filters.vehicles.some((v: string) =>
-          (c.vehicleType ?? "").toLowerCase().includes(v),
-        )
-      )
-        return false;
-    }
     return true;
   });
 }
@@ -661,15 +645,6 @@ function FilterPanel({
             style={{ filter: "drop-shadow(0 0 6px rgba(214,255,47,0.35))" }}
           />
         </div>
-      </FilterSection>
-
-      <FilterSection title="Vehicle Type">
-        <ChipGroup
-          options={VEHICLE_TYPES}
-          value={filters.vehicles}
-          onChange={(v) => onChange({ vehicles: v })}
-          multi
-        />
       </FilterSection>
 
       <FilterSection title="Gender Preference" defaultOpen={false}>
@@ -1487,11 +1462,13 @@ function SwipeCard({
 
         {/* Vehicle + Style */}
         <div className="flex flex-wrap gap-1.5 mb-3">
-          <span className="bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-xs font-semibold px-3 py-1 rounded-full">
-            🏍️ {rider.vehicleType ?? "Motorcycle"}
-          </span>
+          {rider.vehicleType && (
+            <span className="bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-xs font-semibold px-3 py-1 rounded-full">
+              🏍️ {rider.vehicleType}
+            </span>
+          )}
           <span className="bg-white/10 backdrop-blur-sm border border-white/15 text-white/80 text-xs font-semibold px-3 py-1 rounded-full capitalize">
-            {rider.travelStyle ?? "Adventure"}
+            {rider.travelStyle ?? "Explorer"}
           </span>
         </div>
 
