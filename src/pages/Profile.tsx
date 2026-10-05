@@ -18,7 +18,8 @@ async function authFetch(url: string, options: RequestInit = {}) {
   if (!res.ok) throw new Error(`Request failed: ${res.status}`);
   return res.json();
 }
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { uploadImage } from '@/lib/upload';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ import {
   ChevronRight, Bell, Shield, LogOut, User, Bike, Mountain,
   Globe, Phone, Mail, Lock, Trash2, ExternalLink,
   CheckCircle2, MoreHorizontal, MessageSquare, Plus, PenLine,
-  ImagePlus, Hash, Navigation2, Eye, AlertTriangle, Grid3x3, Loader2
+  ImagePlus, Hash, Navigation2, Eye, AlertTriangle, Grid3x3, Loader2, Star
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -856,11 +857,15 @@ export default function Profile() {
 // ─── Posts Grid (placed after Profile so it can use hooks freely) ──────────
 function PostsGrid({ profile }: { profile: any }) {
   const queryClient = useQueryClient();
-  const { data: feed, isLoading: feedLoading } = useGetFeed({ limit: 50 });
+  const { data: userPosts, isLoading: postsLoading } = useQuery({
+    queryKey: ['/api/users', profile?.id, 'posts'],
+    queryFn: () => authFetch(`/api/users/${profile.id}/posts`),
+    enabled: !!profile?.id,
+  });
   const { mutate: deletePost } = useDeletePost();
 
-  // filter to current user's posts
-  const myPosts = (feed?.posts ?? []).filter(p => p.author?.id === profile.id);
+  // User's own posts directly from API
+  const myPosts: any[] = Array.isArray(userPosts) ? userPosts : [];
 
   const [lightboxPost, setLightboxPost] = useState<any>(null);
   const [menuPostId, setMenuPostId] = useState<number | null>(null);
@@ -877,6 +882,7 @@ function PostsGrid({ profile }: { profile: any }) {
     deletePost({ postId: deleteTarget.id }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users', profile?.id, 'posts'] });
         setDeleteTarget(null);
         setLightboxPost(null);
       },
@@ -907,7 +913,7 @@ function PostsGrid({ profile }: { profile: any }) {
       </div>
 
       {/* Grid */}
-      {feedLoading ? (
+      {postsLoading ? (
         <div className="grid grid-cols-3 gap-1.5">
           {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
         </div>
@@ -936,10 +942,23 @@ function PostsGrid({ profile }: { profile: any }) {
               onClick={e => { e.stopPropagation(); setLightboxPost(post); setMenuPostId(null); }}
             >
               <img
-                src={post.imageUrl || fallbackImages[i % 2]}
+                src={post.imageUrl?.split('|')[0] || fallbackImages[i % 2]}
                 alt="post"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
+
+              {/* Rating badge if present */}
+              {(() => {
+                const ratingTag = post.hashtags?.find((t: string) => t.startsWith('rating:'));
+                const ratingVal = ratingTag ? parseInt(ratingTag.replace('rating:', ''), 10) : null;
+                if (!ratingVal) return null;
+                return (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-black/70 backdrop-blur-md border border-amber-400/40 text-amber-400 text-[10px] font-black shadow-lg">
+                    <Star size={10} className="fill-amber-400" />
+                    <span>{ratingVal}.0</span>
+                  </div>
+                );
+              })()}
 
               {/* Hover overlay — stats */}
               <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-5">
@@ -1015,7 +1034,7 @@ function PostsGrid({ profile }: { profile: any }) {
               {/* Image side */}
               <div className="md:w-1/2 aspect-square md:aspect-auto bg-black flex-shrink-0">
                 <img
-                  src={lightboxPost.imageUrl || fallbackImages[0]}
+                  src={lightboxPost.imageUrl?.split('|')[0] || fallbackImages[0]}
                   alt="post"
                   className="w-full h-full object-cover"
                 />
@@ -1033,7 +1052,7 @@ function PostsGrid({ profile }: { profile: any }) {
                     <div>
                       <p className="font-bold text-sm leading-tight">{profile.name}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {lightboxPost.location && <><Navigation2 size={9} className="inline mr-0.5" />{lightboxPost.location} · </>}
+                        {lightboxPost.location && <><Navigation2 size={9} className="inline mr-0.5" />{lightboxPost.location.replace('||', ' · ')} · </>}
                         {new Date(lightboxPost.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
@@ -1064,12 +1083,27 @@ function PostsGrid({ profile }: { profile: any }) {
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+                  {/* Rating badge if present */}
+                  {(() => {
+                    const ratingTag = lightboxPost.hashtags?.find((t: string) => t.startsWith('rating:'));
+                    const ratingVal = ratingTag ? parseInt(ratingTag.replace('rating:', ''), 10) : null;
+                    if (!ratingVal) return null;
+                    return (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 text-xs font-bold">
+                        <Star size={13} className="fill-amber-400 text-amber-400" />
+                        <span>{ratingVal}.0 / 5.0 Rating</span>
+                      </div>
+                    );
+                  })()}
+
                   <p className="text-sm leading-relaxed text-white/90">{lightboxPost.content}</p>
-                  {lightboxPost.hashtags?.length > 0 && (
+                  {lightboxPost.hashtags?.filter((t: string) => !t.startsWith('rating:')).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {lightboxPost.hashtags.map((tag: string) => (
-                        <span key={tag} className="text-xs text-primary/80 font-semibold">#{tag}</span>
-                      ))}
+                      {lightboxPost.hashtags
+                        .filter((tag: string) => !tag.startsWith('rating:'))
+                        .map((tag: string) => (
+                          <span key={tag} className="text-xs text-primary/80 font-semibold">#{tag}</span>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -1101,6 +1135,7 @@ function PostsGrid({ profile }: { profile: any }) {
             onClose={() => setEditPost(null)}
             onSaved={(updated) => {
               queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/users', profile?.id, 'posts'] });
               setEditPost(null);
             }}
           />
@@ -1115,6 +1150,7 @@ function PostsGrid({ profile }: { profile: any }) {
             onClose={() => setCreateOpen(false)}
             onCreated={() => {
               queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/users', profile?.id, 'posts'] });
               setCreateOpen(false);
             }}
           />
@@ -1209,12 +1245,23 @@ function EditPostModal({ post, onClose, onSaved }: { post: any; onClose: () => v
   const handleSave = async () => {
     setSaving(true);
     try {
+      let finalImageUrl = imageUrl;
+      if (imageUrl && imageUrl.startsWith('data:')) {
+        finalImageUrl = await uploadImage(imageUrl, 'posts');
+      }
       const res = await authFetch(`/api/posts/${post.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ content, imageUrl: imageUrl || null, location: location || null, hashtags }),
+        body: JSON.stringify({
+          content,
+          imageUrl: finalImageUrl || undefined,
+          location: location.trim() || undefined,
+          hashtags,
+        }),
       });
       setSaved(true);
       onSaved(res);
+    } catch (err) {
+      console.error('Failed to update post:', err);
     } finally {
       setSaving(false);
     }
@@ -1365,14 +1412,26 @@ function CreatePostModal({ profile, onClose, onCreated }: { profile: any; onClos
   };
 
   const handleCreate = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() && !imageUrl) return;
     setCreating(true);
     try {
+      let finalImageUrl: string | undefined = undefined;
+      if (imageUrl) {
+        finalImageUrl = await uploadImage(imageUrl, 'posts');
+      }
+      const postContent = content.trim() || (location ? `Ride at ${location}` : 'New ride moment');
       await authFetch('/api/posts', {
         method: 'POST',
-        body: JSON.stringify({ content, imageUrl: imageUrl || null, location: location || null, hashtags }),
+        body: JSON.stringify({
+          content: postContent,
+          imageUrl: finalImageUrl || undefined,
+          location: location.trim() || undefined,
+          hashtags: hashtags.length ? hashtags : undefined,
+        }),
       });
       onCreated();
+    } catch (err) {
+      console.error('Failed to create post:', err);
     } finally {
       setCreating(false);
     }

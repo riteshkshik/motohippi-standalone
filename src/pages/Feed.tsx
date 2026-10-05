@@ -8,8 +8,10 @@ import {
   MapPin, Plus, Globe, Heart, MessageCircle, Share2,
   X, Coffee, BedDouble, Eye, Navigation2, Gem, Tent, UtensilsCrossed,
   LocateFixed, Loader2, ChevronLeft, ChevronRight, Send, Bookmark,
-  Upload, CheckCircle2,
+  Upload, CheckCircle2, Camera, Image as ImageIcon, Star, Sparkles,
 } from 'lucide-react';
+
+import { uploadImage } from '@/lib/upload';
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -26,11 +28,18 @@ const getCat = (id: string) => CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem('motohippi_token') || '';
-const authFetch = (url: string, opts: RequestInit = {}) =>
-  fetch(url, {
+const getApiBase = () => {
+  const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  return base.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+};
+const authFetch = (url: string, opts: RequestInit = {}) => {
+  const cleanBase = getApiBase();
+  const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
+  return fetch(fullUrl, {
     ...opts,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, ...(opts.headers ?? {}) },
   });
+};
 
 function timeAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -166,7 +175,9 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
   const placeCity = decodeCity(post.location);
   const catId     = (post.hashtags as string[])?.[0] ?? 'all';
   const cat       = getCat(catId);
-  const tags      = ((post.hashtags as string[]) ?? []).slice(1);
+  const ratingTag = ((post.hashtags as string[]) ?? []).find((h: string) => typeof h === 'string' && h.startsWith('rating:'));
+  const ratingVal = ratingTag ? Number(ratingTag.split(':')[1]) : null;
+  const tags      = ((post.hashtags as string[]) ?? []).slice(1).filter((h: string) => typeof h === 'string' && !h.startsWith('rating:'));
 
   const handleLike = async () => {
     if (liking) return;
@@ -206,13 +217,22 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
           {/* Bottom gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-          {/* Category badge */}
-          <div
-            className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md"
-            style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
-          >
-            <cat.Icon size={10} strokeWidth={2.5} />
-            {cat.label}
+          {/* Category badge & Rating badge */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md"
+              style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
+            >
+              <cat.Icon size={10} strokeWidth={2.5} />
+              {cat.label}
+            </div>
+
+            {ratingVal && (
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-black/60 border border-[#FBBF24]/40 text-[#FBBF24] backdrop-blur-md shadow-md">
+                <Star size={11} className="fill-[#FBBF24]" />
+                <span>{ratingVal.toFixed(1)}</span>
+              </div>
+            )}
           </div>
 
           {/* Image navigation */}
@@ -263,11 +283,19 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
         {images.length === 0 && (
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black border mb-2"
-                style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
-              >
-                <cat.Icon size={10} /> {cat.label}
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black border"
+                  style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
+                >
+                  <cat.Icon size={10} /> {cat.label}
+                </div>
+                {ratingVal && (
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FBBF24]/15 border border-[#FBBF24]/30 text-[#FBBF24]">
+                    <Star size={10} className="fill-[#FBBF24]" />
+                    <span>{ratingVal.toFixed(1)}</span>
+                  </div>
+                )}
               </div>
               {placeName && <h3 className="text-white font-black text-lg leading-tight">{placeName}</h3>}
               {placeCity && (
@@ -390,40 +418,76 @@ function Empty({ cat: catId, onSuggest }: { cat: string; onSuggest: () => void }
   );
 }
 
-// ─── Suggest Modal ────────────────────────────────────────────────────────────
+// ─── Interactive Star Rating ──────────────────────────────────────────────────
+function StarRating({ value, onChange }: { value: number; onChange: (rating: number) => void }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const labels: Record<number, string> = {
+    1: '1/5 · Poor',
+    2: '2/5 · Fair',
+    3: '3/5 · Good',
+    4: '4/5 · Great',
+    5: '5/5 · Exceptional',
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-[11px] font-black text-white/60 uppercase tracking-widest flex items-center gap-1.5">
+          <Star size={12} className="text-amber-400 fill-amber-400" />
+          5-Star Rating *
+        </label>
+        <span className="text-xs font-bold text-amber-400">
+          {labels[hovered ?? value] || `${value}/5 stars`}
+        </span>
+      </div>
+      <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10">
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4, 5].map((star) => {
+            const active = (hovered ?? value) >= star;
+            return (
+              <button
+                key={star}
+                type="button"
+                onMouseEnter={() => setHovered(star)}
+                onMouseLeave={() => setHovered(null)}
+                onClick={() => onChange(star)}
+                className="p-1 transition-transform hover:scale-125 focus:outline-none"
+              >
+                <Star
+                  size={28}
+                  className={
+                    active
+                      ? 'text-amber-400 fill-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                      : 'text-white/20 hover:text-white/40'
+                  }
+                />
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-[11px] font-bold text-white/40 uppercase tracking-wider">
+          Tap star
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Suggest Modal (3-Step Flow: Media -> Category -> Strict Details) ────────
 function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [step,        setStep]        = useState<'pick' | 'form'>('pick');
-  const [category,    setCategory]    = useState('');
-  const [placeName,   setPlaceName]   = useState('');
-  const [city,        setCity]        = useState('');
+  const [step, setStep] = useState<'media' | 'category' | 'details'>('media');
+  const [images, setImages] = useState<string[]>([]);
+  const [category, setCategory] = useState('cafe');
+  const [placeName, setPlaceName] = useState('');
   const [description, setDescription] = useState('');
-  const [images,      setImages]      = useState<string[]>([]);
-  const [tags,        setTags]        = useState('');
-  const [locating,    setLocating]    = useState(false);
-  const [submitting,  setSubmitting]  = useState(false);
-  const [error,       setError]       = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [rating, setRating] = useState<number>(5);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const cat = getCat(category);
-
-  const detectLocation = () => {
-    if (!navigator.geolocation) return;
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async pos => {
-        try {
-          const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-          const d = await r.json();
-          const a = d.address ?? {};
-          const locality = a.suburb || a.neighbourhood || a.village || a.town || '';
-          const cityName = a.city || a.town || a.state || '';
-          setCity([locality, cityName].filter(Boolean).join(', '));
-        } finally { setLocating(false); }
-      },
-      () => setLocating(false),
-      { timeout: 8000 },
-    );
-  };
 
   const addFiles = (files: FileList) => {
     const slots = 4 - images.length;
@@ -431,28 +495,53 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
       const reader = new FileReader();
       reader.onload = e => {
         const src = e.target?.result as string;
-        setImages(prev => prev.length < 4 ? [...prev, src] : prev);
+        if (src) {
+          setImages(prev => prev.length < 4 ? [...prev, src] : prev);
+        }
       };
       reader.readAsDataURL(f);
     });
   };
 
   const submit = async () => {
-    if (!placeName.trim()) { setError('Place name is required.'); return; }
-    setSubmitting(true); setError('');
+    if (!placeName.trim()) {
+      setError('Place name is required.');
+      return;
+    }
+    if (!description.trim()) {
+      setError('Please provide your tip or review.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
     try {
-      const extraTags = tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
+      let finalImageUrl: string | undefined = undefined;
+      if (images.length) {
+        const uploadedUrls = await Promise.all(images.map((img) => uploadImage(img, 'stories')));
+        const validUrls = uploadedUrls.filter(Boolean);
+        if (validUrls.length) finalImageUrl = encodeImgs(validUrls);
+      }
+
       const body = {
-        content:   description.trim() || undefined,
-        location:  encodePlace(placeName.trim(), city.trim()),
-        imageUrl:  images.length ? encodeImgs(images) : undefined,
-        hashtags:  [category, ...extraTags].filter(Boolean),
+        content: description.trim(),
+        location: placeName.trim(),
+        imageUrl: finalImageUrl,
+        hashtags: [category, `rating:${rating}`].filter(Boolean),
       };
+
       const res = await authFetch('/api/posts', { method: 'POST', body: JSON.stringify(body) });
-      if (!res.ok) { setError('Failed to post. Please try again.'); return; }
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        setError(errJson?.error || 'Failed to post. Please try again.');
+        return;
+      }
       onCreated();
-    } catch { setError('Something went wrong.'); }
-    finally { setSubmitting(false); }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const CAT_DESCRIPTIONS: Record<string, string> = {
@@ -468,7 +557,9 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
         onClick={onClose}
       />
@@ -484,67 +575,291 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
+        {/* Step Progress Bar */}
+        <div className="w-full bg-white/5 h-1">
+          <div
+            className="h-full bg-primary transition-all duration-300"
+            style={{
+              width: step === 'media' ? '33.33%' : step === 'category' ? '66.66%' : '100%',
+            }}
+          />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/6 shrink-0">
           <div className="flex items-center gap-2">
-            {step === 'form' && (
+            {step !== 'media' && (
               <button
-                onClick={() => setStep('pick')}
-                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mr-1"
+                onClick={() => setStep(step === 'details' ? 'category' : 'media')}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mr-1 text-white hover:bg-white/10 transition-colors"
               >
-                <ChevronLeft size={15} />
+                <ChevronLeft size={16} />
               </button>
             )}
             <div>
               <h2 className="text-[15px] font-black text-white">
-                {step === 'pick' ? 'What are you suggesting?' : `Suggest a ${cat.label}`}
+                {step === 'media' && 'Share a Story / Suggest Place'}
+                {step === 'category' && 'Select Category'}
+                {step === 'details' && `About ${placeName || cat.label}`}
               </h2>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                {step === 'pick' ? 'Choose a category to continue' : 'Help the community explore something new'}
+                {step === 'media' && 'Step 1 of 3: Add photos from camera or gallery'}
+                {step === 'category' && 'Step 2 of 3: Choose what kind of spot this is'}
+                {step === 'details' && 'Step 3 of 3: Name, review & 5-star rating'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          >
             <X size={14} />
           </button>
         </div>
 
+        {/* Hidden File Inputs */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={e => {
+            if (e.target.files) addFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={e => {
+            if (e.target.files) addFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
           <AnimatePresence mode="wait">
+            {/* STEP 1: MEDIA FIRST (Camera or Gallery) */}
+            {step === 'media' && (
+              <motion.div
+                key="step-media"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                className="space-y-5"
+              >
+                <div className="text-center py-2">
+                  <p className="text-sm font-bold text-white">Start with a Photo</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Click a fresh photo from your camera or pick from your device gallery
+                  </p>
+                </div>
 
-            {/* Step 1 — pick category */}
-            {step === 'pick' && (
-              <motion.div key="pick" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }}>
+                {/* Camera & Gallery Trigger Cards */}
                 <div className="grid grid-cols-2 gap-3">
-                  {CATEGORIES.slice(1).map(c => (
-                    <motion.button
-                      key={c.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => { setCategory(c.id); setStep('form'); }}
-                      className="flex items-center gap-3 p-4 rounded-2xl border bg-white/4 border-white/8 hover:border-white/20 text-left transition-all"
+                  {/* Camera Option */}
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-5 rounded-2xl border bg-amber-400/5 border-amber-400/20 hover:border-amber-400/50 hover:bg-amber-400/10 flex flex-col items-center justify-center text-center gap-3 transition-all group cursor-pointer"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform shadow-lg shadow-amber-400/10">
+                      <Camera size={26} />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm text-white group-hover:text-amber-300">Click from Camera</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Take photo now</p>
+                    </div>
+                  </button>
+
+                  {/* Gallery Option */}
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="p-5 rounded-2xl border bg-primary/5 border-primary/20 hover:border-primary/50 hover:bg-primary/10 flex flex-col items-center justify-center text-center gap-3 transition-all group cursor-pointer"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary group-hover:scale-105 transition-transform shadow-lg shadow-primary/10">
+                      <ImageIcon size={26} />
+                    </div>
+                    <div>
+                      <p className="font-black text-sm text-white group-hover:text-primary">Choose from Gallery</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Select from device</p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Previews if any images selected */}
+                {images.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-white/60 uppercase tracking-widest">
+                        Selected Photos ({images.length}/4)
+                      </span>
+                      {images.length < 4 && (
+                        <span className="text-[10px] text-muted-foreground">Add up to {4 - images.length} more</span>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2.5 flex-wrap">
+                      {images.map((src, i) => (
+                        <div
+                          key={i}
+                          className="relative w-20 h-20 rounded-2xl overflow-hidden border border-white/15 shrink-0 group shadow-md"
+                        >
+                          <img src={src} alt="selected" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
+                            className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/80 text-white flex items-center justify-center hover:bg-red-500 transition-colors"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {images.length < 4 && (
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => cameraInputRef.current?.click()}
+                            title="Add with camera"
+                            className="w-20 h-20 rounded-2xl border-2 border-dashed border-amber-400/30 hover:border-amber-400 bg-amber-400/5 flex flex-col items-center justify-center gap-1 text-amber-400 transition-colors"
+                          >
+                            <Camera size={18} />
+                            <span className="text-[9px] font-bold">Camera</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => galleryInputRef.current?.click()}
+                            title="Add from gallery"
+                            className="w-20 h-20 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary bg-primary/5 flex flex-col items-center justify-center gap-1 text-primary transition-colors"
+                          >
+                            <ImageIcon size={18} />
+                            <span className="text-[9px] font-bold">Gallery</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Continue button or skip */}
+                <div className="pt-4 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep('category')}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                  >
+                    <span>Next: Select Category</span>
+                    <ChevronRight size={16} />
+                  </button>
+                  {images.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setStep('category')}
+                      className="w-full py-2 text-xs text-white/50 hover:text-white transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
-                        style={{ background: c.bg, borderColor: c.border }}>
-                        <c.Icon size={18} style={{ color: c.color }} />
-                      </div>
-                      <div>
-                        <p className="font-black text-sm text-white">{c.label}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{CAT_DESCRIPTIONS[c.id]}</p>
-                      </div>
-                    </motion.button>
-                  ))}
+                      Or continue without photo
+                    </button>
+                  )}
                 </div>
               </motion.div>
             )}
 
-            {/* Step 2 — form */}
-            {step === 'form' && (
-              <motion.div key="form" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} className="space-y-5 pb-4">
+            {/* STEP 2: CATEGORY SELECTION */}
+            {step === 'category' && (
+              <motion.div
+                key="step-category"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                className="space-y-4"
+              >
+                <div className="text-center py-1">
+                  <p className="text-sm font-bold text-white">What type of place is this?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Select a category to help fellow riders discover it easily
+                  </p>
+                </div>
 
-                {/* Place name */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest">Place Name *</label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {CATEGORIES.slice(1).map(c => {
+                    const isSelected = category === c.id;
+                    return (
+                      <motion.button
+                        key={c.id}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => {
+                          setCategory(c.id);
+                          setStep('details');
+                        }}
+                        className={`flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-white/10 border-primary ring-1 ring-primary/40'
+                            : 'bg-white/4 border-white/8 hover:border-white/20'
+                        }`}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                          style={{ background: c.bg, borderColor: c.border }}
+                        >
+                          <c.Icon size={18} style={{ color: c.color }} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-black text-sm text-white truncate">{c.label}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight truncate">
+                            {CAT_DESCRIPTIONS[c.id]}
+                          </p>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: STRICTLY 3 FIELDS ONLY (Place Name, Review/Tip, 5-Star Rating) */}
+            {step === 'details' && (
+              <motion.div
+                key="step-details"
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                className="space-y-5 pb-2"
+              >
+                {/* Selected Category Pill */}
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-white/4 border border-white/8">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center border"
+                      style={{ background: cat.bg, borderColor: cat.border }}
+                    >
+                      <cat.Icon size={15} style={{ color: cat.color }} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">{cat.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{CAT_DESCRIPTIONS[cat.id]}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep('category')}
+                    className="text-xs text-primary font-bold hover:underline"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                {/* 1. Place Name */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest">
+                    Place Name *
+                  </label>
                   <input
                     autoFocus
                     value={placeName}
@@ -553,7 +868,7 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                       category === 'cafe'      ? 'e.g. Third Wave Coffee, Café Arambol' :
                       category === 'stay'      ? 'e.g. Zostel Manali, Forest Homestay' :
                       category === 'viewpoint' ? 'e.g. Tiger Hill, Rohtang Top' :
-                      category === 'route'     ? 'e.g. Spiti Valley Loop, Pali Ghat Road' :
+                      category === 'route'     ? 'e.g. Spiti Valley Loop, Pali Ghat' :
                       category === 'hidden'    ? 'e.g. Secret Waterfall, Ridge Road' :
                       category === 'camping'   ? 'e.g. Chopta Meadow, Bir Billing Site' :
                                                  'e.g. Punjabi Dhaba, Pindi Chicken House'
@@ -562,103 +877,26 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                   />
                 </div>
 
-                {/* Location */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest flex items-center gap-1.5">
-                    <MapPin size={10} className="text-primary" /> Location / City
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      value={city}
-                      onChange={e => setCity(e.target.value)}
-                      placeholder="e.g. Manali, Himachal Pradesh"
-                      className="flex-1 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50 text-sm"
-                    />
-                    <button
-                      onClick={detectLocation}
-                      disabled={locating}
-                      className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                      title="Auto-detect location"
-                    >
-                      {locating ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
-                    </button>
+                {/* 2. Your TIP / REVIEW */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-white/60 uppercase tracking-widest">
+                      Your TIP / REVIEW *
+                    </label>
+                    <span className="text-[10px] text-muted-foreground">{description.length}/500</span>
                   </div>
-                </div>
-
-                {/* Photos */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest flex items-center gap-1.5">
-                    Photos
-                    <span className="normal-case font-medium tracking-normal text-white/30">up to 4 images</span>
-                  </label>
-
-                  {images.length > 0 ? (
-                    <div className="flex gap-2 flex-wrap">
-                      {images.map((src, i) => (
-                        <div key={i} className="relative w-[72px] h-[72px] rounded-xl overflow-hidden border border-white/10 shrink-0">
-                          <img src={src} alt="" className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => setImages(p => p.filter((_, idx) => idx !== i))}
-                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center"
-                          >
-                            <X size={9} />
-                          </button>
-                        </div>
-                      ))}
-                      {images.length < 4 && (
-                        <button
-                          onClick={() => fileRef.current?.click()}
-                          className="w-[72px] h-[72px] rounded-xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors shrink-0"
-                        >
-                          <Plus size={15} />
-                          <span className="text-[10px]">Add</span>
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="w-full h-28 rounded-2xl border-2 border-dashed border-white/15 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                        <Upload size={17} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-bold">Upload photos</p>
-                        <p className="text-xs opacity-60">Café, food, ambience — anything worth sharing</p>
-                      </div>
-                    </button>
-                  )}
-                  <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
-                    onChange={e => e.target.files && addFiles(e.target.files)} />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest">Your tip / review</label>
                   <textarea
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    placeholder="What makes this place special? Best dish, must-try, parking tip, best time to visit…"
+                    placeholder="What makes this place special? Best dish, must-try tip, parking tip, road condition, best time to visit..."
                     rows={4}
                     maxLength={500}
                     className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50 text-sm resize-none leading-relaxed"
                   />
-                  <p className="text-right text-[10px] text-muted-foreground">{description.length}/500</p>
                 </div>
 
-                {/* Tags */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black text-white/60 uppercase tracking-widest">
-                    Tags <span className="normal-case font-medium tracking-normal text-white/30">optional, comma separated</span>
-                  </label>
-                  <input
-                    value={tags}
-                    onChange={e => setTags(e.target.value)}
-                    placeholder="e.g. himalayas, pet-friendly, must-visit"
-                    className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-primary/50 text-sm"
-                  />
-                </div>
+                {/* 3. 5-Star Rating */}
+                <StarRating value={rating} onChange={setRating} />
 
                 {error && (
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
@@ -670,16 +908,16 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           </AnimatePresence>
         </div>
 
-        {/* Submit footer */}
-        {step === 'form' && (
+        {/* Submit footer - on step 3 */}
+        {step === 'details' && (
           <div className="px-5 py-4 border-t border-white/6 shrink-0">
             <button
               onClick={submit}
-              disabled={submitting || !placeName.trim()}
+              disabled={submitting || !placeName.trim() || !description.trim()}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
             >
               {submitting
-                ? <><Loader2 size={15} className="animate-spin" /> Posting…</>
+                ? <><Loader2 size={15} className="animate-spin" /> Sharing with Community…</>
                 : <><CheckCircle2 size={15} /> Share with the Community</>
               }
             </button>
