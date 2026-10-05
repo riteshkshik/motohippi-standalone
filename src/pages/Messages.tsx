@@ -665,27 +665,38 @@ export default function Messages() {
         )}
       </div>
 
-      {/* Chat Area */}
-      <div className={`flex-1 bg-card/30 flex flex-col relative ${!isChatOpen ? 'hidden md:flex' : 'flex'}`}>
-        {activeGroupId ? (
-          <GroupChatView
-            groupId={activeGroupId}
-            onBack={() => setActiveGroupId(null)}
-            onStartDirectChat={handleStartDirectChat}
-          />
-        ) : activeId ? (
-          <ChatView conversationId={activeId} onBack={() => setActiveId(null)} />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
-            <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center border border-white/5 shadow-inner">
-              <MessageCircle size={32} className="opacity-30 text-primary" />
+      {/* Chat Area with MotoHippi Doodle Wallpaper */}
+      <div className={`flex-1 flex flex-col relative overflow-hidden bg-background ${!isChatOpen ? 'hidden md:flex' : 'flex'}`}>
+        {/* Doodle Wallpaper Layer */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-20 select-none"
+          style={{ backgroundImage: `url('/chat_bg.png')` }}
+        />
+        {/* Ambient Dark Overlay for High Contrast */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+        {/* Content Container (Layered above wallpaper) */}
+        <div className="relative z-0 flex-1 flex flex-col h-full overflow-hidden">
+          {activeGroupId ? (
+            <GroupChatView
+              groupId={activeGroupId}
+              onBack={() => setActiveGroupId(null)}
+              onStartDirectChat={handleStartDirectChat}
+            />
+          ) : activeId ? (
+            <ChatView conversationId={activeId} onBack={() => setActiveId(null)} />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
+              <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner backdrop-blur-sm">
+                <MessageCircle size={32} className="opacity-40 text-primary" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-white font-bold text-base">Select a conversation or group</p>
+                <p className="text-xs text-muted-foreground">Start chatting with fellow riders or community clubs</p>
+              </div>
             </div>
-            <div className="text-center space-y-1">
-              <p className="text-white font-bold text-base">Select a conversation or group</p>
-              <p className="text-xs text-muted-foreground">Start chatting with fellow riders or community clubs</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Create Group Modal */}
@@ -840,7 +851,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
   return (
     <>
       {/* Header */}
-      <div className="h-16 border-b border-white/5 bg-background flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
+      <div className="h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={onBack}>
             <ChevronLeft size={24} />
@@ -896,7 +907,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
               } ${
                 isMe
                   ? isImageMsg ? 'rounded-tr-sm' : 'bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]'
-                  : isImageMsg ? 'rounded-tl-sm' : 'bg-white/8 text-white rounded-tl-sm border border-white/5'
+                  : isImageMsg ? 'rounded-tl-sm' : 'bg-[#18181b]/90 text-white rounded-tl-sm border border-white/10 backdrop-blur-sm shadow-md'
               }`}>
                 {isImageMsg ? (
                   <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-lg">
@@ -933,7 +944,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-background border-t border-white/5 shrink-0">
+      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0">
         <input
           type="file"
           ref={fileInputRef}
@@ -1267,7 +1278,7 @@ function GroupChatView({
   return (
     <>
       {/* Group Chat Top Bar */}
-      <div className="h-16 border-b border-white/5 bg-background flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
+      <div className="h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={onBack}>
             <ChevronLeft size={24} />
@@ -1390,7 +1401,7 @@ function GroupChatView({
                       : 'bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]'
                     : isImageMsg
                     ? 'rounded-tl-sm'
-                    : 'bg-white/8 text-white rounded-tl-sm border border-white/5'
+                    : 'bg-[#18181b]/90 text-white rounded-tl-sm border border-white/10 backdrop-blur-sm shadow-md'
                 }`}
               >
                 {isImageMsg ? (
@@ -1432,7 +1443,7 @@ function GroupChatView({
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-background border-t border-white/5 shrink-0">
+      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0">
         <input
           type="file"
           ref={fileInputRef}
