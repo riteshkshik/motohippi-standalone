@@ -142,8 +142,8 @@ const NAV_ITEMS = [
 const MOBILE_MAIN = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/messages", icon: MessageSquare, label: "Messages" },
-  { href: "/insurance", icon: Shield, label: "Insurance" },
   { href: "/discover", icon: Compass, label: "Find" },
+  { href: "/insurance", icon: Shield, label: "Insurance" },
   { href: "/feed", icon: Globe, label: "Stories" },
 ];
 
