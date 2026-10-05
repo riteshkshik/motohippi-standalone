@@ -398,7 +398,6 @@ function EditProfileSheet({ profile, onClose }: { profile: any; onClose: () => v
         <div className="flex border-b border-white/8 px-2">
           {[
             { id: 'basic', label: 'Info', icon: User },
-            { id: 'riding', label: 'Riding', icon: Bike },
             { id: 'interests', label: 'Interests', icon: Mountain },
           ].map(({ id, label, icon: Icon }) => (
             <button
@@ -470,32 +469,22 @@ function EditProfileSheet({ profile, onClose }: { profile: any; onClose: () => v
                   </div>
                 </div>
               </div>
-            </>
-          )}
-
-          {tab === 'riding' && (
-            <>
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Vehicle Type</label>
-                <div className="flex flex-wrap gap-2">
-                  {VEHICLE_TYPES.map(v => (
-                    <button key={v} onClick={() => setVehicleType(v)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all ${vehicleType === v ? 'bg-primary text-black border-primary shadow-[0_0_12px_rgba(214,255,47,0.2)]' : 'bg-white/5 border-white/10 text-muted-foreground hover:border-primary/40 hover:text-white'}`}>{v}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Adventure Level</label>
-                <div className="flex flex-wrap gap-2">
-                  {ADVENTURE_LEVELS.map(l => (
-                    <button key={l} onClick={() => setAdventureLevel(l)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all ${adventureLevel === l ? 'bg-primary text-black border-primary shadow-[0_0_12px_rgba(214,255,47,0.2)]' : 'bg-white/5 border-white/10 text-muted-foreground hover:border-primary/40 hover:text-white'}`}>{l}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-3">
+              <div className="space-y-3 pt-1">
                 <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Travel Style</label>
                 <div className="flex flex-wrap gap-2">
                   {TRAVEL_STYLES.map(s => (
-                    <button key={s} onClick={() => setTravelStyle(s)} className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all ${travelStyle === s ? 'bg-primary text-black border-primary shadow-[0_0_12px_rgba(214,255,47,0.2)]' : 'bg-white/5 border-white/10 text-muted-foreground hover:border-primary/40 hover:text-white'}`}>{s}</button>
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setTravelStyle(s)}
+                      className={`px-3.5 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                        travelStyle === s
+                          ? 'bg-primary text-black border-primary shadow-[0_0_12px_rgba(214,255,47,0.2)]'
+                          : 'bg-white/5 border-white/10 text-muted-foreground hover:border-primary/40 hover:text-white'
+                      }`}
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -776,9 +765,9 @@ export default function Profile() {
                   <div className="space-y-1.5">
                     <h3 className="font-bold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-widest">Rider Details</h3>
                     {[
-                      { label: 'Vehicle', value: profile.vehicleType || 'Motorcycle' },
-                      { label: 'Level', value: profile.adventureLevel || 'Advanced' },
-                      { label: 'Style', value: profile.travelStyle || 'Explorer' },
+                      { label: 'Travel Style', value: profile.travelStyle || 'Solo Rider' },
+                      ...(profile.vehicleType ? [{ label: 'Vehicle', value: profile.vehicleType }] : []),
+                      ...(profile.adventureLevel ? [{ label: 'Level', value: profile.adventureLevel }] : []),
                       { label: 'Member since', value: new Date(profile.createdAt || Date.now()).getFullYear().toString() },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between items-center text-xs sm:text-sm py-0.5">
