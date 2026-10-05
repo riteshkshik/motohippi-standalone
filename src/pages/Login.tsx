@@ -25,14 +25,19 @@ export default function Login() {
     }
   }, [isLoggedIn, setLocation]);
 
-  // Handle Google OAuth callback: ?token=...&verified=true
+  // Handle Google OAuth callback: ?token=...&verified=true&new_user=true
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oauthToken = params.get('token');
     const oauthError = params.get('error');
+    const isNewUser = params.get('new_user') === 'true';
     if (oauthToken) {
       login(oauthToken);
-      setLocation('/home');
+      if (isNewUser) {
+        setLocation('/choose-username');
+      } else {
+        setLocation('/home');
+      }
     } else if (oauthError === 'google_not_configured') {
       setErrorMsg('Google login is not configured yet. Please use email/password.');
     } else if (oauthError === 'google_failed') {
@@ -114,12 +119,12 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm">Email</Label>
+              <Label htmlFor="email" className="text-sm">Email or Username</Label>
               <Input
                 id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="rider@example.com"
+                type="text"
+                autoComplete="username email"
+                placeholder="rider@example.com or alex_rider"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

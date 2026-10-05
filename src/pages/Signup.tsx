@@ -6,10 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SiGoogle } from 'react-icons/si';
+import { Loader2, CheckCircle2, XCircle, AtSign } from 'lucide-react';
 import { FloatingLoginIcons } from '@/components/FloatingLoginIcons';
 
 export default function Signup() {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const [usernameError, setUsernameError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
@@ -26,12 +30,89 @@ export default function Signup() {
     }
   }, [isLoggedIn, setLocation]);
 
+  // Live debounced username validation & availability check
+  React.useEffect(() => {
+    const clean = username.trim().toLowerCase();
+    if (!clean) {
+      setUsernameStatus('idle');
+      setUsernameError('');
+      return;
+    }
+
+    if (clean.length < 3) {
+      setUsernameStatus('invalid');
+      setUsernameError('Must be at least 3 characters');
+      return;
+    }
+
+    if (clean.length > 20) {
+      setUsernameStatus('invalid');
+      setUsernameError('Must be at most 20 characters');
+      return;
+    }
+
+    if (!/^[a-z0-9_]+$/.test(clean)) {
+      setUsernameStatus('invalid');
+      setUsernameError('Letters, numbers, and underscores only');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    setUsernameError('');
+
+    const timer = setTimeout(async () => {
+      try {
+        const rawBase =
+          import.meta.env.VITE_API_URL ||
+          import.meta.env.VITE_API_BASE_URL ||
+          'http://localhost:3001';
+        const cleanBase = rawBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+        const res = await fetch(`${cleanBase}/api/auth/check-username?username=${encodeURIComponent(clean)}`);
+        const data = await res.json();
+        if (data.available) {
+          setUsernameStatus('available');
+          setUsernameError('');
+        } else {
+          setUsernameStatus('taken');
+          setUsernameError(data.error || 'Username is already taken');
+        }
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [username]);
+
   if (isLoggedIn) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    signupMutation.mutate({ data: { name, email, password, phone: phone || undefined } }, {
+
+    const cleanUser = username.trim().toLowerCase();
+    if (!cleanUser) {
+      setErrorMsg('Please choose a username.');
+      return;
+    }
+    if (usernameStatus === 'taken') {
+      setErrorMsg('Username is already taken. Please pick another.');
+      return;
+    }
+    if (usernameStatus === 'invalid') {
+      setErrorMsg(usernameError || 'Invalid username.');
+      return;
+    }
+
+    signupMutation.mutate({
+      data: {
+        name,
+        username: cleanUser,
+        email,
+        password,
+        phone: phone || undefined,
+      } as any,
+    }, {
       onSuccess: (data: any) => {
         if (data.email) {
           sessionStorage.setItem('pendingEmail', data.email);
@@ -110,6 +191,57 @@ export default function Signup() {
             </div>
 
             <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="username" className="text-sm">Username</Label>
+                {usernameStatus === 'checking' && (
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Loader2 size={11} className="animate-spin text-primary" /> checking…
+                  </span>
+                )}
+                {usernameStatus === 'available' && (
+                  <span className="text-[11px] text-primary font-bold flex items-center gap-1">
+                    <CheckCircle2 size={12} className="text-primary" /> Available
+                  </span>
+                )}
+                {(usernameStatus === 'taken' || usernameStatus === 'invalid') && (
+                  <span className="text-[11px] text-destructive font-medium flex items-center gap-1">
+                    <XCircle size={12} /> {usernameError}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm pointer-events-none">
+                  @
+                </span>
+                <Input
+                  id="username"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  placeholder="alex_rider"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  required
+                  className={`bg-black/50 h-11 text-sm pl-8 pr-10 font-medium ${
+                    usernameStatus === 'available'
+                      ? 'border-primary/50 focus-visible:ring-primary/40'
+                      : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                      ? 'border-destructive/60 focus-visible:ring-destructive/40'
+                      : ''
+                  }`}
+                />
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {usernameStatus === 'checking' && <Loader2 size={15} className="animate-spin text-muted-foreground" />}
+                  {usernameStatus === 'available' && <CheckCircle2 size={16} className="text-primary" />}
+                  {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <XCircle size={16} className="text-destructive" />}
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                3–20 characters, lowercase letters, numbers, and underscores
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm">Email</Label>
               <Input
                 id="email"
@@ -160,7 +292,13 @@ export default function Signup() {
             <Button
               type="submit"
               className="w-full font-bold h-12 mt-1 text-sm sm:text-base"
-              disabled={signupMutation.isPending}
+              disabled={
+                signupMutation.isPending ||
+                usernameStatus === 'checking' ||
+                usernameStatus === 'taken' ||
+                usernameStatus === 'invalid' ||
+                !username.trim()
+              }
             >
               {signupMutation.isPending ? 'Creating Account…' : 'Create Account'}
             </Button>

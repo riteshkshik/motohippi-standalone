@@ -181,12 +181,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const cartCount =
     cart?.items?.reduce((s: number, i: any) => s + i.quantity, 0) ?? 0;
 
-  // Redirect logged-in users away from auth pages
+  // Redirect logged-in users away from auth pages or to choose-username if handle missing
   React.useEffect(() => {
-    if (isLoggedIn && (location === "/login" || location === "/signup")) {
-      navigate("/home");
+    if (isLoggedIn) {
+      if (user && !user.username && location !== "/choose-username") {
+        navigate("/choose-username");
+      } else if (location === "/login" || location === "/signup") {
+        navigate("/home");
+      }
     }
-  }, [isLoggedIn, location, navigate]);
+  }, [isLoggedIn, user, location, navigate]);
 
   // Non-app routes (random 404 URLs, auth pages, legal pages, landing) never show the sidebar
   if (!isValidAppRoute(location)) {
