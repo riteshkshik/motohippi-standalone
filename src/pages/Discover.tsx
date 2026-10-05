@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import {
   useGetDiscoverCandidates,
   useSwipe,
+  useUpdateMyProfile,
 } from "@workspace/api-client-react";
 import {
   motion,
@@ -185,6 +186,8 @@ const PLANS = [
 interface Filters {
   radius: number;
   location: string;
+  lat?: number | null;
+  lng?: number | null;
   vehicles: string[];
   lookingFor: string[];
   gender: string;
@@ -208,6 +211,8 @@ interface LocationState {
 const DEFAULT_FILTERS: Filters = {
   radius: 100,
   location: "",
+  lat: null,
+  lng: null,
   vehicles: [],
   lookingFor: [],
   gender: "no_preference",
@@ -521,17 +526,32 @@ function LocationSection({
   filters: Filters;
   onChange: (f: Partial<Filters>) => void;
 }) {
+  const { user, updateUser } = useAuth();
+  const updateProfileMutation = useUpdateMyProfile();
+
   const [loc, setLoc] = useState<LocationState>({
-    city: "",
-    lat: null,
-    lng: null,
+    city: filters.location || user?.city || "",
+    lat: filters.lat ?? user?.latitude ?? null,
+    lng: filters.lng ?? user?.longitude ?? null,
     loading: false,
     error: null,
   });
 
+  // Sync with user's stored profile if available
+  useEffect(() => {
+    if (user?.city && !loc.city) {
+      setLoc((prev) => ({
+        ...prev,
+        city: user.city || "",
+        lat: user.latitude ?? prev.lat,
+        lng: user.longitude ?? prev.lng,
+      }));
+    }
+  }, [user?.city, user?.latitude, user?.longitude]);
+
   const detect = () => {
     if (!navigator.geolocation) {
-      setLoc((l) => ({ ...l, error: "Not supported" }));
+      setLoc((l) => ({ ...l, error: "Geolocation not supported" }));
       return;
     }
     setLoc((l) => ({ ...l, loading: true, error: null }));
@@ -549,15 +569,27 @@ function LocationSection({
             d.address?.city ||
             d.address?.town ||
             d.address?.state_district ||
+            d.address?.suburb ||
             city;
         } catch {
           /* fallback */
         }
+
         setLoc({ city, lat, lng, loading: false, error: null });
-        onChange({ location: city });
+        onChange({ location: city, lat, lng });
+
+        // Persist real coordinates to user's database profile
+        updateProfileMutation.mutate({
+          data: {
+            latitude: lat,
+            longitude: lng,
+            city,
+          } as any,
+        });
+        updateUser({ latitude: lat, longitude: lng, city });
       },
-      () => setLoc((l) => ({ ...l, loading: false, error: "Location denied" })),
-      { timeout: 10000 },
+      () => setLoc((l) => ({ ...l, loading: false, error: "Location permission denied" })),
+      { timeout: 10000, enableHighAccuracy: true },
     );
   };
 
@@ -570,12 +602,23 @@ function LocationSection({
             transition={{ duration: 2, repeat: Infinity }}
             className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"
           />
-          <span className="text-sm text-white font-semibold flex-1 truncate">
-            {loc.city}
-          </span>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-white font-semibold block truncate">
+              {loc.city}
+            </span>
+            {loc.lat && loc.lng && (
+              <span className="text-[10px] text-primary/80 font-mono block">
+                {loc.lat.toFixed(2)}°, {loc.lng.toFixed(2)}° (Live GPS)
+              </span>
+            )}
+          </div>
           <button
-            onClick={() => setLoc((l) => ({ ...l, city: "" }))}
+            onClick={() => {
+              setLoc((l) => ({ ...l, city: "", lat: null, lng: null }));
+              onChange({ location: "", lat: null, lng: null });
+            }}
             className="text-xs text-white/40 hover:text-white"
+            title="Clear Location"
           >
             ✕
           </button>
@@ -593,7 +636,11 @@ function LocationSection({
         ) : (
           <Navigation size={13} />
         )}
-        {loc.loading ? "Detecting…" : "📍 Use GPS Location"}
+        {loc.loading
+          ? "Detecting GPS…"
+          : loc.lat
+          ? "📍 Update GPS Location"
+          : "📍 Use GPS Location"}
       </motion.button>
       {loc.error && (
         <p className="text-xs text-red-400 mt-1.5 text-center">{loc.error}</p>
@@ -1733,14 +1780,39 @@ export default function Discover() {
   const swipesUsed = user?.dailySwipesCount ?? 0;
   const swipesLeft = Math.max(0, MAX_DAILY_SWIPES - swipesUsed);
 
+  const [filters, setFilters] = useState<Filters>(() => ({
+    ...DEFAULT_FILTERS,
+    location: user?.city || "",
+    lat: user?.latitude ?? null,
+    lng: user?.longitude ?? null,
+  }));
+
+  // Sync initial location if user loads asynchronously
+  useEffect(() => {
+    if (user?.city && !filters.location) {
+      setFilters((prev) => ({
+        ...prev,
+        location: user.city || "",
+        lat: user.latitude ?? prev.lat,
+        lng: user.longitude ?? prev.lng,
+      }));
+    }
+  }, [user?.city, user?.latitude, user?.longitude]);
+
+  const queryOriginLat = filters.lat ?? user?.latitude ?? undefined;
+  const queryOriginLng = filters.lng ?? user?.longitude ?? undefined;
+
   const {
     data: rawCandidates,
     isLoading,
     refetch,
-  } = useGetDiscoverCandidates({ maxDistance: 500 });
+  } = useGetDiscoverCandidates({
+    maxDistance: filters.radius,
+    lat: queryOriginLat,
+    lng: queryOriginLng,
+  } as any);
   const swipeMutation = useSwipe();
 
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [riders, setRiders] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const viewMode = "stack";
@@ -1748,9 +1820,9 @@ export default function Discover() {
 
   useEffect(() => {
     if (rawCandidates && Array.isArray(rawCandidates)) {
-      setRiders(rawCandidates);
+      setRiders(applyFilters(rawCandidates, filters));
     }
-  }, [rawCandidates]);
+  }, [rawCandidates, filters.radius]);
 
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -1760,7 +1832,7 @@ export default function Discover() {
 
   const handleRefresh = async () => {
     setSearching(true);
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 600));
     const result = await refetch();
     const fresh = result.data ?? rawCandidates ?? [];
     setRiders(applyFilters(fresh, filters));

@@ -44,6 +44,12 @@ export interface User {
   /** @nullable */
   country?: string | null;
   /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
+  locationUpdatedAt?: string | null;
+  /** @nullable */
   age?: number | null;
   /** @nullable */
   gender?: string | null;
@@ -73,6 +79,8 @@ export interface UserUpdate {
   bio?: string;
   city?: string;
   country?: string;
+  latitude?: number;
+  longitude?: number;
   age?: number;
   gender?: string;
   vehicleType?: string;
@@ -619,6 +627,8 @@ export type GetDiscoverCandidatesParams = {
 vehicleType?: string;
 adventureLevel?: string;
 maxDistance?: number;
+lat?: number;
+lng?: number;
 gender?: string;
 minAge?: number;
 maxAge?: number;
