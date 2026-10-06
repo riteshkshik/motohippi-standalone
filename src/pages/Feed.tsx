@@ -560,7 +560,7 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]"
         onClick={onClose}
       />
       <motion.div
@@ -568,7 +568,7 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl"
+        className="fixed bottom-0 left-0 right-0 sm:max-w-lg sm:mx-auto z-[70] bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[92vh] flex flex-col shadow-2xl"
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -747,27 +747,6 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
                     </div>
                   </div>
                 )}
-
-                {/* Continue button or skip */}
-                <div className="pt-4 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setStep('category')}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                  >
-                    <span>Next: Select Category</span>
-                    <ChevronRight size={16} />
-                  </button>
-                  {images.length === 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setStep('category')}
-                      className="w-full py-2 text-xs text-white/50 hover:text-white transition-colors"
-                    >
-                      Or continue without photo
-                    </button>
-                  )}
-                </div>
               </motion.div>
             )}
 
@@ -908,13 +887,36 @@ function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCreated: 
           </AnimatePresence>
         </div>
 
+        {/* Action footer - on step 1 */}
+        {step === 'media' && (
+          <div className="px-5 py-3.5 border-t border-white/6 shrink-0 bg-[#0d0f10] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+            <button
+              type="button"
+              onClick={() => setStep('category')}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 cursor-pointer"
+            >
+              <span>Next: Select Category</span>
+              <ChevronRight size={16} />
+            </button>
+            {images.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setStep('category')}
+                className="w-full pt-2 pb-0.5 text-xs text-white/50 hover:text-white transition-colors cursor-pointer"
+              >
+                Or continue without photo
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Submit footer - on step 3 */}
         {step === 'details' && (
-          <div className="px-5 py-4 border-t border-white/6 shrink-0">
+          <div className="px-5 py-4 border-t border-white/6 shrink-0 bg-[#0d0f10] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
             <button
               onClick={submit}
               disabled={submitting || !placeName.trim() || !description.trim()}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-black font-black text-sm hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20 cursor-pointer"
             >
               {submitting
                 ? <><Loader2 size={15} className="animate-spin" /> Sharing with Community…</>
@@ -964,13 +966,13 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
     <>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
         onClick={onClose}
       />
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[75vh] flex flex-col"
+        className="fixed bottom-0 left-0 right-0 sm:max-w-lg sm:mx-auto z-[70] bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[75vh] flex flex-col"
       >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
@@ -1014,7 +1016,7 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
           ))}
         </div>
 
-        <div className="px-4 py-3 border-t border-white/6 flex gap-2 shrink-0">
+        <div className="px-4 py-3 border-t border-white/6 flex gap-2 shrink-0 bg-[#0d0f10] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <input
             value={text}
             onChange={e => setText(e.target.value)}
@@ -1025,7 +1027,7 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
           <button
             onClick={send}
             disabled={!text.trim() || sending}
-            className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-black disabled:opacity-40 shrink-0"
+            className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-black disabled:opacity-40 shrink-0 cursor-pointer"
           >
             {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={14} />}
           </button>
