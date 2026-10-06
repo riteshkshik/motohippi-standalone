@@ -9,6 +9,8 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+export type GuideType = "ios" | "android" | null;
+
 export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(() => {
@@ -21,16 +23,27 @@ export function usePwaInstall() {
     const isIOSStandalone = (window.navigator as any).standalone === true;
     return isStandaloneMedia || isIOSStandalone;
   });
+
+  const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
-  const [showIOSInstructions, setShowIOSInstructions] = useState<boolean>(false);
+  const [isAndroid, setIsAndroid] = useState<boolean>(false);
+  const [showGuide, setShowGuide] = useState<GuideType>(null);
 
   useEffect(() => {
-    // Detect iOS Safari
+    if (typeof window === "undefined") return;
+
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
-    setIsIOS(isIOSDevice);
+    const isAndroidDevice = /android/.test(userAgent);
+    const hasTouch = window.matchMedia("(pointer: coarse)").matches;
+    const mobileScreen = window.innerWidth < 1024;
+    const isMobileDevice = isIOSDevice || isAndroidDevice || /mobile/.test(userAgent) || (hasTouch && mobileScreen);
 
-    // Check display mode
+    setIsIOS(isIOSDevice);
+    setIsAndroid(isAndroidDevice);
+    setIsMobile(isMobileDevice);
+
+    // Check if already in standalone app mode
     const checkStandalone = () => {
       const isStandaloneMedia = window.matchMedia("(display-mode: standalone)").matches;
       const isIOSStandalone = (window.navigator as any).standalone === true;
@@ -43,7 +56,7 @@ export function usePwaInstall() {
     };
     checkStandalone();
 
-    // Listen for beforeinstallprompt (Chromium, Android Chrome, Edge)
+    // Listen for beforeinstallprompt (Chromium on Android / Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -53,6 +66,7 @@ export function usePwaInstall() {
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setShowGuide(null);
       localStorage.setItem("motohippi_pwa_installed", "true");
       sessionStorage.removeItem("motohippi_just_authenticated");
     };
@@ -66,46 +80,53 @@ export function usePwaInstall() {
     };
   }, []);
 
-  const promptInstall = useCallback(async (): Promise<"accepted" | "dismissed" | "ios_guide" | "unavailable"> => {
+  const promptInstall = useCallback(async (): Promise<"accepted" | "dismissed" | "guide" | "unavailable"> => {
     if (isStandalone || isInstalled) {
       return "unavailable";
     }
 
+    // 1. If on iOS Safari: show iOS specific guide
     if (isIOS) {
-      setShowIOSInstructions(true);
-      return "ios_guide";
+      setShowGuide("ios");
+      return "guide";
     }
 
-    if (!deferredPrompt) {
-      // Fallback: If browser doesn't support beforeinstallprompt (e.g. desktop safari or firefox)
-      // or event hasn't fired yet, show iOS/general guide
-      setShowIOSInstructions(true);
-      return "ios_guide";
-    }
-
-    try {
-      await deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
-      if (choiceResult.outcome === "accepted") {
-        setIsInstalled(true);
-        localStorage.setItem("motohippi_pwa_installed", "true");
-        setDeferredPrompt(null);
-        return "accepted";
-      } else {
-        return "dismissed";
+    // 2. If Android / Chromium and native prompt is ready: trigger native prompt
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        if (choiceResult.outcome === "accepted") {
+          setIsInstalled(true);
+          localStorage.setItem("motohippi_pwa_installed", "true");
+          setDeferredPrompt(null);
+          return "accepted";
+        } else {
+          return "dismissed";
+        }
+      } catch (err) {
+        console.warn("PWA install error:", err);
       }
-    } catch (err) {
-      console.warn("PWA install error:", err);
-      return "unavailable";
     }
-  }, [deferredPrompt, isIOS, isInstalled, isStandalone]);
+
+    // 3. If native prompt is not ready on Android or other mobile browser:
+    // show Android-specific 3-dots menu guide (NEVER Safari instructions)
+    if (isAndroid) {
+      setShowGuide("android");
+      return "guide";
+    }
+
+    // Default mobile fallback
+    setShowGuide("android");
+    return "guide";
+  }, [deferredPrompt, isIOS, isAndroid, isInstalled, isStandalone]);
 
   const dismiss = useCallback(() => {
     // Dismiss for 7 days
     const nextWeek = Date.now() + 7 * 24 * 60 * 60 * 1000;
     localStorage.setItem("motohippi_pwa_dismissed_until", nextWeek.toString());
     sessionStorage.removeItem("motohippi_just_authenticated");
-    setShowIOSInstructions(false);
+    setShowGuide(null);
   }, []);
 
   const isDismissed = useCallback(() => {
@@ -115,12 +136,15 @@ export function usePwaInstall() {
   }, []);
 
   return {
-    canInstall: !isStandalone && !isInstalled,
+    // Only allow install on MOBILE devices that are NOT already installed or standalone
+    canInstall: isMobile && !isStandalone && !isInstalled,
     isInstalled,
     isStandalone,
+    isMobile,
     isIOS,
-    showIOSInstructions,
-    setShowIOSInstructions,
+    isAndroid,
+    showGuide,
+    setShowGuide,
     hasNativePrompt: !!deferredPrompt,
     promptInstall,
     dismiss,
