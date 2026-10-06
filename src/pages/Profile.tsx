@@ -595,7 +595,6 @@ function SettingsSheet({ profile, onClose }: { profile: any; onClose: () => void
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Support</p>
         </div>
         <SettingRow icon={ExternalLink} label="Help & FAQ" sublabel="MotoHippi@yahoo.com" iconColor="text-muted-foreground" onClick={() => window.open('mailto:MotoHippi@yahoo.com')} />
-        <SettingRow icon={MessageCircle} label="WhatsApp Support" sublabel="+91-9999207570" iconColor="text-[#25D366]" onClick={() => window.open('https://wa.me/919999207570')} />
 
         <div className="px-6 pt-4 pb-2">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Danger Zone</p>

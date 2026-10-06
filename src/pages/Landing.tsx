@@ -377,15 +377,6 @@ export default function Landing() {
                   MotoHippi@yahoo.com
                 </a>
               </p>
-              <p>
-                WhatsApp:{" "}
-                <a
-                  href="https://wa.me/919999207570"
-                  className="text-white hover:text-primary transition-colors"
-                >
-                  +91-9999207570
-                </a>
-              </p>
             </div>
           </div>
 
