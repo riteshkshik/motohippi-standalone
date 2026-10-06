@@ -302,6 +302,20 @@ function EventAdCarousel() {
   );
 }
 
+// ─── Connect & Discover Hero Banner ───────────────────────────────────────────
+function ConnectDiscoverBanner() {
+  return (
+    <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-[#101214]">
+      <img
+        src="/connect_discover.jpeg"
+        alt="MotoHippi - Connect & Discover"
+        className="w-full h-auto object-cover object-center select-none"
+        loading="eager"
+      />
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
@@ -323,11 +337,14 @@ export default function Home() {
 
       {/* ── Page Content ── */}
       <div className="relative z-10 px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-8 md:space-y-10 animate-in fade-in duration-500">
-        {/* Make Friends * Travel * Chill — Lottie Hero */}
-        <LottieHeroBanner />
+        {/* Connect & Discover Top Hero Banner */}
+        <ConnectDiscoverBanner />
 
         {/* Quick Actions */}
         <QuickActions />
+
+        {/* Make Friends * Travel * Chill — Lottie Hero */}
+        <LottieHeroBanner />
 
         {/* Upcoming Events — Advertisement Carousel */}
         <EventAdCarousel />
