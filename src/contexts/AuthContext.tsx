@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (newToken: string) => {
     localStorage.setItem('motohippi_token', newToken);
+    sessionStorage.setItem('motohippi_just_authenticated', 'true');
     setToken(newToken);
   };
 

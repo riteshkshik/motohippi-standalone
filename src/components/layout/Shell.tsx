@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
+import { InstallAppPrompt } from "@/components/pwa/InstallAppPrompt";
 
 // ─── YouTube icon (SVG — not in lucide-react) ─────────────────────────────────
 const YouTubeIcon = ({
@@ -662,6 +663,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      {/* ── PWA Installation Prompt ── */}
+      <InstallAppPrompt />
     </div>
   );
 }
