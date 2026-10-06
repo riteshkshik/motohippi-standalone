@@ -13,10 +13,7 @@ export type GuideType = "ios" | "android" | null;
 
 export function usePwaInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("motohippi_pwa_installed") === "true";
-  });
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [isStandalone, setIsStandalone] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     const isStandaloneMedia = window.matchMedia("(display-mode: standalone)").matches;
@@ -43,7 +40,7 @@ export function usePwaInstall() {
     setIsAndroid(isAndroidDevice);
     setIsMobile(isMobileDevice);
 
-    // Check if already in standalone app mode
+    // Check if currently running inside the standalone app window
     const checkStandalone = () => {
       const isStandaloneMedia = window.matchMedia("(display-mode: standalone)").matches;
       const isIOSStandalone = (window.navigator as any).standalone === true;
@@ -51,7 +48,6 @@ export function usePwaInstall() {
       setIsStandalone(standalone);
       if (standalone) {
         setIsInstalled(true);
-        localStorage.setItem("motohippi_pwa_installed", "true");
       }
     };
     checkStandalone();
@@ -60,6 +56,9 @@ export function usePwaInstall() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      // If browser fires this event, the app is NOT installed on this device
+      setIsInstalled(false);
+      localStorage.removeItem("motohippi_pwa_installed");
     };
 
     // Listen for appinstalled
@@ -67,7 +66,6 @@ export function usePwaInstall() {
       setIsInstalled(true);
       setDeferredPrompt(null);
       setShowGuide(null);
-      localStorage.setItem("motohippi_pwa_installed", "true");
       sessionStorage.removeItem("motohippi_just_authenticated");
     };
 
