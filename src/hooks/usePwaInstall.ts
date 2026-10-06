@@ -69,6 +69,9 @@ export function usePwaInstall() {
       sessionStorage.removeItem("motohippi_just_authenticated");
     };
 
+    // Clear any legacy dismissal locks
+    localStorage.removeItem("motohippi_pwa_dismissed_until");
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
@@ -96,7 +99,6 @@ export function usePwaInstall() {
         const choiceResult = await deferredPrompt.userChoice;
         if (choiceResult.outcome === "accepted") {
           setIsInstalled(true);
-          localStorage.setItem("motohippi_pwa_installed", "true");
           setDeferredPrompt(null);
           return "accepted";
         } else {
@@ -120,17 +122,13 @@ export function usePwaInstall() {
   }, [deferredPrompt, isIOS, isAndroid, isInstalled, isStandalone]);
 
   const dismiss = useCallback(() => {
-    // Dismiss for 7 days
-    const nextWeek = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    localStorage.setItem("motohippi_pwa_dismissed_until", nextWeek.toString());
-    sessionStorage.removeItem("motohippi_just_authenticated");
+    // Only dismiss for the active view/action — NO long-term localStorage block
+    localStorage.removeItem("motohippi_pwa_dismissed_until");
     setShowGuide(null);
   }, []);
 
   const isDismissed = useCallback(() => {
-    const dismissedUntil = localStorage.getItem("motohippi_pwa_dismissed_until");
-    if (!dismissedUntil) return false;
-    return Date.now() < parseInt(dismissedUntil, 10);
+    return false;
   }, []);
 
   return {

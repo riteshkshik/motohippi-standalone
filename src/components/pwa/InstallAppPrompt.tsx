@@ -35,17 +35,11 @@ export function InstallAppPrompt() {
       return;
     }
 
-    // Check if user just authenticated in this session or hasn't dismissed yet
-    const justAuth = sessionStorage.getItem("motohippi_just_authenticated") === "true";
-    const dismissed = isDismissed();
-
-    if (justAuth || !dismissed) {
-      const timer = setTimeout(() => {
-        setVisible(true);
-      }, 1200);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoggedIn, canInstall, isMobile, isDismissed]);
+    const timer = setTimeout(() => {
+      setVisible(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [isLoggedIn, canInstall, isMobile]);
 
   const handleInstallClick = async () => {
     const result = await promptInstall();
