@@ -17,10 +17,14 @@ export default function ChooseUsername() {
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // If user already has a valid username and is not loading, go to home
+  // If user already has a valid username, go to home; if logged out, go to login
   useEffect(() => {
-    if (!isLoading && isLoggedIn && user?.username) {
-      setLocation('/home');
+    if (!isLoading) {
+      if (!isLoggedIn) {
+        setLocation('/login');
+      } else if (user?.username) {
+        setLocation('/home');
+      }
     }
   }, [user, isLoggedIn, isLoading, setLocation]);
 

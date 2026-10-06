@@ -66,7 +66,12 @@ function applyBaseUrl(input: RequestInfo | URL): RequestInfo | URL {
   // Only prepend to relative paths (starting with /)
   if (!url.startsWith("/")) return input;
 
-  const absolute = `${_baseUrl}${url}`;
+  const cleanBase = _baseUrl.replace(/\/+$/, "");
+  const normalizedUrl = cleanBase.endsWith("/api") && url.startsWith("/api/")
+    ? url.slice(4)
+    : url;
+
+  const absolute = `${cleanBase}${normalizedUrl}`;
   if (typeof input === "string") return absolute;
   if (isUrl(input)) return new URL(absolute);
   return new Request(absolute, input as Request);
@@ -297,6 +302,17 @@ async function parseSuccessBody(
 ): Promise<unknown> {
   if (hasNoBody(response, requestInfo.method)) {
     return null;
+  }
+
+  const mediaType = getMediaType(response.headers);
+  if (mediaType === "text/html") {
+    const raw = await response.text();
+    throw new ResponseParseError(
+      response,
+      raw,
+      new Error("Received text/html from API endpoint; likely an SPA fallback or incorrect base URL"),
+      requestInfo,
+    );
   }
 
   const effectiveType =

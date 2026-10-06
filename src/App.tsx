@@ -3,7 +3,17 @@ import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppProvider } from '@/contexts/AppContext';
 import { Shell } from '@/components/layout/Shell';
-import { setBaseUrl } from '@workspace/api-client-react/custom-fetch';
+import { setBaseUrl, setAuthTokenGetter } from '@workspace/api-client-react/custom-fetch';
+
+// Initialize API client configuration synchronously before any component renders or queries fire
+const apiBase =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  null;
+if (apiBase) {
+  setBaseUrl(apiBase);
+}
+setAuthTokenGetter(() => localStorage.getItem('motohippi_token'));
 
 // Pages
 import Landing from '@/pages/Landing';
@@ -97,10 +107,6 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    setBaseUrl(import.meta.env.VITE_API_BASE_URL ?? null);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

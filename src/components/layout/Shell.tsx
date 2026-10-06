@@ -172,7 +172,7 @@ const isValidAppRoute = (pathname: string) => {
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn, user, isLoading } = useAuth();
   const [location, navigate] = useLocation();
   const { unreadCount } = useUnreadCount();
   const { data: cart } = useGetCart({
@@ -183,14 +183,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   // Redirect logged-in users away from auth pages or to choose-username if handle missing
   React.useEffect(() => {
-    if (isLoggedIn) {
-      if (user && !user.username && location !== "/choose-username") {
+    // Never make routing decisions while authentication is still loading
+    if (isLoading) return;
+
+    if (isLoggedIn && user && typeof user === "object" && "id" in user) {
+      if (!user.username && location !== "/choose-username") {
         navigate("/choose-username");
       } else if (location === "/login" || location === "/signup") {
         navigate("/home");
       }
     }
-  }, [isLoggedIn, user, location, navigate]);
+  }, [isLoading, isLoggedIn, user, location, navigate]);
 
   // Non-app routes (random 404 URLs, auth pages, legal pages, landing) never show the sidebar
   if (!isValidAppRoute(location)) {
@@ -203,6 +206,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   // ── Logged-out layout ───────────────────────────────────────────────────────
   if (!isLoggedIn) {
+    if (isLoading) {
+      return (
+        <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </main>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <header className="fixed top-0 left-0 right-0 z-50 glass-panel">

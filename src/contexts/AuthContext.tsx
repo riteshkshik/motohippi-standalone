@@ -13,6 +13,9 @@ interface AuthContextType {
   updateUser: (updatedUser: any) => void;
 }
 
+// Ensure auth token getter is active from the very beginning
+setAuthTokenGetter(() => localStorage.getItem('motohippi_token'));
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -33,7 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    if (profileUser) setUser(profileUser);
+    // Only accept real parsed user objects with an ID, rejecting accidental HTML/string responses
+    if (profileUser && typeof profileUser === 'object' && 'id' in profileUser) {
+      setUser(profileUser);
+    }
   }, [profileUser]);
 
   const login = (newToken: string) => {
@@ -61,8 +67,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [error]);
 
+  const isUserValid = !!user && typeof user === 'object' && 'id' in user;
+  const isAuthLoading = !!token && isLoading && !isUserValid;
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, isLoading: !!token && isLoading, token, login, logout, refreshUser, updateUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoggedIn: isUserValid,
+        isLoading: isAuthLoading,
+        token,
+        login,
+        logout,
+        refreshUser,
+        updateUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
