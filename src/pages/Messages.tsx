@@ -386,10 +386,79 @@ export default function Messages() {
     }
   }, []);
 
-  const handleAcceptMatch = (convId: number) => {
-    setActiveId(convId);
+  // Listen to popstate (browser back/forward button or URL updates)
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const convId = params.get('conv');
+      const grpId = params.get('groupId') || params.get('group');
+      if (grpId) {
+        setActiveGroupId(parseInt(grpId, 10));
+        setActiveId(null);
+        setActiveTab('groups');
+      } else if (convId) {
+        setActiveId(parseInt(convId, 10));
+        setActiveGroupId(null);
+        setActiveTab('direct');
+      } else {
+        setActiveId(null);
+        setActiveGroupId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Track iOS Visual Viewport height to keep chat input flush with keyboard
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        setVisualViewportHeight(window.visualViewport.height);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    handleResize();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      }
+    };
+  }, []);
+
+  const openDirectChat = (id: number) => {
+    setActiveId(id);
     setActiveGroupId(null);
     setActiveTab('direct');
+    window.history.replaceState(null, '', `/messages?conv=${id}`);
+    window.dispatchEvent(new Event('popstate'));
+  };
+
+  const openGroupChat = (id: number) => {
+    setActiveGroupId(id);
+    setActiveId(null);
+    setActiveTab('groups');
+    window.history.replaceState(null, '', `/messages?group=${id}`);
+    window.dispatchEvent(new Event('popstate'));
+  };
+
+  const closeChat = () => {
+    setActiveId(null);
+    setActiveGroupId(null);
+    window.history.replaceState(null, '', '/messages');
+    window.dispatchEvent(new Event('popstate'));
+  };
+
+  const handleAcceptMatch = (convId: number) => {
+    openDirectChat(convId);
     refetchConvs();
   };
 
@@ -404,9 +473,7 @@ export default function Messages() {
       });
       if (res.ok) {
         const conv = await res.json();
-        setActiveGroupId(null);
-        setActiveId(conv.id);
-        setActiveTab('direct');
+        openDirectChat(conv.id);
         refetchConvs();
       }
     } catch {
@@ -416,8 +483,19 @@ export default function Messages() {
 
   const isChatOpen = !!activeId || !!activeGroupId;
 
+  // Prevent background scrolling on iOS when chat is open
+  useEffect(() => {
+    if (isChatOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isChatOpen]);
+
   return (
-    <div className="flex h-[calc(100svh-3.5rem-5rem)] md:h-svh overflow-hidden">
+    <div className={`flex ${isChatOpen ? 'h-[100dvh]' : 'h-[calc(100dvh-3.5rem-5rem)]'} md:h-svh overflow-hidden`}>
       {/* Conversations / Groups Sidebar */}
       <div className={`w-full md:w-80 border-r border-white/5 bg-background flex flex-col ${isChatOpen ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-white/5 shrink-0 space-y-3">
@@ -498,7 +576,7 @@ export default function Messages() {
             <PendingRequestsBanner onAccept={handleAcceptMatch} />
 
             {/* Match bubbles */}
-            <MatchesBanner onOpen={id => { setActiveId(id); setActiveGroupId(null); }} searchQuery={searchQuery} />
+            <MatchesBanner onOpen={openDirectChat} searchQuery={searchQuery} />
 
             <div className="flex-1 overflow-y-auto no-scrollbar p-2">
               {convLoading ? (
@@ -523,7 +601,7 @@ export default function Messages() {
                 return (
                   <button
                     key={conv.id}
-                    onClick={() => { setActiveId(conv.id); setActiveGroupId(null); }}
+                    onClick={() => openDirectChat(conv.id)}
                     className={`w-full text-left p-3 rounded-2xl flex items-center gap-3 hover:bg-white/5 transition-all mb-1 ${
                       isSelected ? 'bg-primary/15 border border-primary/25 shadow-sm' : 'border border-transparent'
                     }`}
@@ -606,7 +684,7 @@ export default function Messages() {
                 return (
                   <button
                     key={group.id}
-                    onClick={() => { setActiveGroupId(group.id); setActiveId(null); }}
+                    onClick={() => openGroupChat(group.id)}
                     className={`w-full text-left p-3 rounded-2xl flex items-center gap-3 hover:bg-white/5 transition-all mb-1 ${
                       isSelected ? 'bg-primary/15 border border-primary/25 shadow-sm' : 'border border-transparent'
                     }`}
@@ -666,7 +744,18 @@ export default function Messages() {
       </div>
 
       {/* Chat Area with MotoHippi Doodle Wallpaper */}
-      <div className={`flex-1 flex flex-col relative overflow-hidden bg-background ${!isChatOpen ? 'hidden md:flex' : 'flex'}`}>
+      <div
+        className={`flex flex-col relative overflow-hidden bg-background ${
+          isChatOpen
+            ? 'fixed inset-0 z-[60] flex md:static md:flex-1 md:z-auto'
+            : 'hidden md:flex md:flex-1'
+        }`}
+        style={
+          isChatOpen && visualViewportHeight
+            ? { height: `${visualViewportHeight}px`, maxHeight: `${visualViewportHeight}px` }
+            : undefined
+        }
+      >
         {/* Doodle Wallpaper Layer */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none opacity-20 select-none"
@@ -680,11 +769,11 @@ export default function Messages() {
           {activeGroupId ? (
             <GroupChatView
               groupId={activeGroupId}
-              onBack={() => setActiveGroupId(null)}
+              onBack={closeChat}
               onStartDirectChat={handleStartDirectChat}
             />
           ) : activeId ? (
-            <ChatView conversationId={activeId} onBack={() => setActiveId(null)} />
+            <ChatView conversationId={activeId} onBack={closeChat} />
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground flex-col gap-4">
               <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner backdrop-blur-sm">
@@ -705,9 +794,7 @@ export default function Messages() {
         onClose={() => setCreateGroupOpen(false)}
         onCreated={(id) => {
           setCreateGroupOpen(false);
-          setActiveGroupId(id);
-          setActiveId(null);
-          setActiveTab('groups');
+          openGroupChat(id);
           refetchGroups();
         }}
       />
@@ -851,7 +938,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
   return (
     <>
       {/* Header */}
-      <div className="h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
+      <div className="min-h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0 pt-[env(safe-area-inset-top)] box-content">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={onBack}>
             <ChevronLeft size={24} />
@@ -944,7 +1031,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0">
+      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <input
           type="file"
           ref={fileInputRef}
@@ -970,7 +1057,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
             onChange={e => setText(e.target.value)}
             placeholder={isUploadingImage ? "Uploading image to S3..." : "Type a message..."}
             disabled={isUploadingImage}
-            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-sm"
+            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"
           />
           <Button
             type="submit"
@@ -1278,7 +1365,7 @@ function GroupChatView({
   return (
     <>
       {/* Group Chat Top Bar */}
-      <div className="h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0">
+      <div className="min-h-16 border-b border-white/5 bg-background/85 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10 shrink-0 pt-[env(safe-area-inset-top)] box-content">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={onBack}>
             <ChevronLeft size={24} />
@@ -1443,7 +1530,7 @@ function GroupChatView({
       </div>
 
       {/* Input Bar */}
-      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0">
+      <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <input
           type="file"
           ref={fileInputRef}
@@ -1469,7 +1556,7 @@ function GroupChatView({
             onChange={(e) => setText(e.target.value)}
             placeholder={isUploadingImage ? "Uploading to S3..." : `Message ${groupDetails?.name || 'group'}...`}
             disabled={isUploadingImage}
-            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-sm"
+            className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"
           />
           <Button
             type="submit"

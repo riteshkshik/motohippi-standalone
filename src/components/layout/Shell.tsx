@@ -182,6 +182,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const cartCount =
     cart?.items?.reduce((s: number, i: any) => s + i.quantity, 0) ?? 0;
 
+  // Check if user is currently inside an active chat on mobile
+  const [isInsideChat, setIsInsideChat] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkChat = () => {
+      if (typeof window === "undefined") return;
+      const isMessages = location === "/messages" || window.location.pathname === "/messages";
+      const params = new URLSearchParams(window.location.search);
+      const hasChatParam = params.has("conv") || params.has("group") || params.has("groupId");
+      setIsInsideChat(isMessages && hasChatParam);
+    };
+
+    checkChat();
+    window.addEventListener("popstate", checkChat);
+    return () => window.removeEventListener("popstate", checkChat);
+  }, [location]);
+
   // Redirect logged-in users away from auth pages or to choose-username if handle missing
   React.useEffect(() => {
     // Never make routing decisions while authentication is still loading
@@ -607,17 +624,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-x-hidden min-h-0 pb-24 md:pb-0">
+        <main className={`flex-1 overflow-x-hidden min-h-0 ${isInsideChat ? 'pb-0' : 'pb-24'} md:pb-0`}>
           {children}
         </main>
       </div>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────────────── */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="mx-3 mb-2 bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl px-1 py-1 flex items-center justify-around shadow-2xl shadow-black/60">
+      {!isInsideChat && (
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-50"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="mx-3 mb-2 bg-[#111]/90 backdrop-blur-2xl border border-white/10 rounded-2xl px-1 py-1 flex items-center justify-around shadow-2xl shadow-black/60">
           {MOBILE_MAIN.map((item) => {
             const active = isActive(item.href);
             return (
@@ -663,6 +681,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      )}
 
       {/* ── PWA Installation Prompt ── */}
       <InstallAppPrompt />
