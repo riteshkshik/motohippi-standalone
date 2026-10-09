@@ -410,27 +410,32 @@ export default function Messages() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Track iOS Visual Viewport height to keep chat input flush with keyboard
-  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+  // Track iOS Visual Viewport height and top offset so container moves in sync with visual viewport
+  const [viewportState, setViewportState] = useState<{ height: number; top: number } | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
 
-    const handleResize = () => {
+    const handleUpdate = () => {
       if (window.visualViewport) {
-        setVisualViewportHeight(window.visualViewport.height);
+        setViewportState({
+          height: window.visualViewport.height,
+          top: window.visualViewport.offsetTop,
+        });
       }
     };
 
-    window.visualViewport.addEventListener('resize', handleResize);
-    window.visualViewport.addEventListener('scroll', handleResize);
-    handleResize();
+    window.visualViewport.addEventListener('resize', handleUpdate);
+    window.visualViewport.addEventListener('scroll', handleUpdate);
+    window.addEventListener('scroll', handleUpdate);
+    handleUpdate();
 
     return () => {
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-        window.visualViewport.removeEventListener('scroll', handleResize);
+        window.visualViewport.removeEventListener('resize', handleUpdate);
+        window.visualViewport.removeEventListener('scroll', handleUpdate);
       }
+      window.removeEventListener('scroll', handleUpdate);
     };
   }, []);
 
@@ -483,15 +488,26 @@ export default function Messages() {
 
   const isChatOpen = !!activeId || !!activeGroupId;
 
-  // Prevent background scrolling on iOS when chat is open
+  // Prevent background scrolling and window jumping on iOS when chat is open
   useEffect(() => {
-    if (isChatOpen) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
+    if (!isChatOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalWidth = document.body.style.width;
+    const originalHeight = document.body.style.height;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.width = originalWidth;
+      document.body.style.height = originalHeight;
+    };
   }, [isChatOpen]);
 
   return (
@@ -747,12 +763,18 @@ export default function Messages() {
       <div
         className={`flex flex-col relative overflow-hidden bg-background ${
           isChatOpen
-            ? 'fixed inset-0 z-[60] flex md:static md:flex-1 md:z-auto'
+            ? 'fixed left-0 right-0 z-[60] flex md:static md:flex-1 md:z-auto'
             : 'hidden md:flex md:flex-1'
         }`}
         style={
-          isChatOpen && visualViewportHeight
-            ? { height: `${visualViewportHeight}px`, maxHeight: `${visualViewportHeight}px` }
+          isChatOpen && viewportState
+            ? {
+                top: `${viewportState.top}px`,
+                height: `${viewportState.height}px`,
+                maxHeight: `${viewportState.height}px`,
+              }
+            : isChatOpen
+            ? { top: 0, bottom: 0 }
             : undefined
         }
       >
@@ -806,7 +828,7 @@ export default function Messages() {
 // ─── Chat View with Real-Time WebSocket Support ─────────────────────────────────
 function ChatView({ conversationId, onBack }: { conversationId: number; onBack: () => void }) {
   const { data: initialMessages, isLoading } = useListMessages(conversationId);
-  const sendMutation = useSendMessage(conversationId);
+  const sendMutation = useSendMessage();
   const { refetchUnread } = useUnreadCount();
   const { toast } = useToast();
   const [messagesList, setMessagesList] = useState<any[]>([]);
@@ -850,7 +872,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
   const sendImageMessage = (s3Url: string) => {
     const sentViaWs = sendMessage(conversationId, s3Url, 'image');
     if (!sentViaWs) {
-      sendMutation.mutate({ data: { content: s3Url, messageType: 'image' } }, {
+      sendMutation.mutate({ conversationId, data: { content: s3Url, messageType: 'image' } }, {
         onSuccess: (data: any) => {
           if (data) {
             setMessagesList((prev) => [...prev, data]);
@@ -924,7 +946,7 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
     const sentViaWs = sendMessage(conversationId, cleanText, 'text');
     if (!sentViaWs) {
       // Fallback to HTTP POST
-      sendMutation.mutate({ data: { content: cleanText, messageType: 'text' } }, {
+      sendMutation.mutate({ conversationId, data: { content: cleanText, messageType: 'text' } }, {
         onSuccess: (data: any) => {
           if (data) {
             setMessagesList((prev) => [...prev, data]);
@@ -1055,6 +1077,11 @@ function ChatView({ conversationId, onBack }: { conversationId: number; onBack: 
           <Input
             value={text}
             onChange={e => setText(e.target.value)}
+            onFocus={() => {
+              if (window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+              }
+            }}
             placeholder={isUploadingImage ? "Uploading image to S3..." : "Type a message..."}
             disabled={isUploadingImage}
             className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"
@@ -1554,6 +1581,11 @@ function GroupChatView({
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onFocus={() => {
+              if (window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+              }
+            }}
             placeholder={isUploadingImage ? "Uploading to S3..." : `Message ${groupDetails?.name || 'group'}...`}
             disabled={isUploadingImage}
             className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"

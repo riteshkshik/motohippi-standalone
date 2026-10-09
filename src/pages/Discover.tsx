@@ -658,8 +658,8 @@ function FilterPanel({
 }: {
   filters: Filters;
   onChange: (patch: Partial<Filters>) => void;
-  onSearch: () => void;
-  searching: boolean;
+  onSearch?: () => void;
+  searching?: boolean;
 }) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
 

@@ -77,8 +77,8 @@ function EmptyCart() {
 
 // ─── Cart item card ───────────────────────────────────────────────────────────
 interface CartItemProduct {
-  id: number; name: string; category?: string; brand?: string;
-  imageUrl?: string; price: number; originalPrice?: number | null;
+  id: number; name: string; category?: string; brand?: string | null;
+  imageUrl?: string | null; price: number; originalPrice?: number | null;
   rating?: number | null; inStock?: boolean;
 }
 

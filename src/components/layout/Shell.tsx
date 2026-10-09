@@ -584,45 +584,47 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 pb-[env(safe-area-inset-bottom)] md:pb-0">
+      <div className={`flex-1 flex flex-col min-w-0 ${isInsideChat ? '' : 'pb-[env(safe-area-inset-bottom)]'} md:pb-0`}>
         {/* Mobile top bar */}
-        <header className="md:hidden sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-white/5 px-4 h-14 flex items-center justify-between shrink-0">
-          <Link href="/home" className="flex items-center gap-2">
-            <img
-              src="/logo.png"
-              alt="MotoHippi"
-              className="h-8 w-8 rounded-xl object-cover"
-            />
-            <span className="text-base font-bold tracking-tighter text-white">
-              MotoHippi
-            </span>
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link href="/cart">
-              <button className="relative w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors">
-                <ShoppingBag size={20} />
-                {cartCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-black text-[9px] font-black flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+        {!isInsideChat && (
+          <header className="md:hidden sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-white/5 px-4 h-14 flex items-center justify-between shrink-0">
+            <Link href="/home" className="flex items-center gap-2">
+              <img
+                src="/logo.png"
+                alt="MotoHippi"
+                className="h-8 w-8 rounded-xl object-cover"
+              />
+              <span className="text-base font-bold tracking-tighter text-white">
+                MotoHippi
+              </span>
             </Link>
-            <Link href="/profile">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt="Profile"
-                  className="w-8 h-8 rounded-full object-cover border border-white/20"
-                />
-              ) : (
-                <button className="w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors">
-                  <User size={20} />
+            <div className="flex items-center gap-1">
+              <Link href="/cart">
+                <button className="relative w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors">
+                  <ShoppingBag size={20} />
+                  {cartCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-black text-[9px] font-black flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </button>
-              )}
-            </Link>
-          </div>
-        </header>
+              </Link>
+              <Link href="/profile">
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover border border-white/20"
+                  />
+                ) : (
+                  <button className="w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors">
+                    <User size={20} />
+                  </button>
+                )}
+              </Link>
+            </div>
+          </header>
+        )}
 
         <main className={`flex-1 overflow-x-hidden min-h-0 ${isInsideChat ? 'pb-0' : 'pb-24'} md:pb-0`}>
           {children}

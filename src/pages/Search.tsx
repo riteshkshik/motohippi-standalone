@@ -499,8 +499,7 @@ export default function SearchPage() {
         setFiltersOpen(false);
         try {
           const params = new URLSearchParams({ vehicleType: 'any', travelStyle: '', lookingFor: '', gender: 'no_preference', experienceLevel: 'any', verifiedOnly: 'false', ageMin: '18', ageMax: '60' });
-          const res = await customFetch(`/api/search/riders?${params}`);
-          const data = await res.json();
+          const data = await customFetch<any>(`/api/search/riders?${params}`);
           setRiders(Array.isArray(data) ? data : []);
         } catch {
           setRiders([]);
@@ -531,8 +530,7 @@ export default function SearchPage() {
     });
 
     try {
-      const res = await customFetch(`/api/search/riders?${params}`);
-      const data = await res.json();
+      const data = await customFetch<any>(`/api/search/riders?${params}`);
       setRiders(Array.isArray(data) ? data : []);
     } catch {
       setRiders([]);

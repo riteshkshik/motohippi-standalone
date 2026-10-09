@@ -30,10 +30,9 @@ export default function VerifyEmail() {
 
   // Start cooldown timer
   useEffect(() => {
-    if (resendCooldown > 0) {
-      const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-      return () => clearTimeout(t);
-    }
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
   }, [resendCooldown]);
 
   const sendOtp = async () => {
