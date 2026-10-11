@@ -1,17 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useQueryClient } from '@tanstack/react-query';
-import { useGetFeed } from '@workspace/api-client-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetFeed } from "@workspace/api-client-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  MapPin, Plus, Globe, Heart, MessageCircle, Share2,
-  X, Coffee, BedDouble, Eye, Navigation2, Gem, Tent, UtensilsCrossed,
-  LocateFixed, Loader2, ChevronLeft, ChevronRight, Send, Bookmark,
-  Upload, CheckCircle2, Camera, Image as ImageIcon, Star, Sparkles,
-} from 'lucide-react';
+  MapPin,
+  Plus,
+  Globe,
+  Heart,
+  MessageCircle,
+  Share2,
+  X,
+  Coffee,
+  BedDouble,
+  Eye,
+  Navigation2,
+  Gem,
+  Tent,
+  UtensilsCrossed,
+  LocateFixed,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Bookmark,
+  Upload,
+  CheckCircle2,
+  Camera,
+  Image as ImageIcon,
+  Star,
+  Sparkles,
+} from "lucide-react";
 
-import { uploadImage } from '@/lib/upload';
+import { uploadImage } from "@/lib/upload";
 
 import {
   CATEGORIES,
@@ -22,26 +44,35 @@ import {
   encodeImgs,
   decodeImgs,
   SuggestModal,
-} from '@/components/SuggestModal';
+} from "@/components/SuggestModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getToken = () => localStorage.getItem('motohippi_token') || '';
+const getToken = () => localStorage.getItem("motohippi_token") || "";
 const getApiBase = () => {
-  const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  return base.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+  const base =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:3001";
+  return base.replace(/\/api\/?$/, "").replace(/\/+$/, "");
 };
 const authFetch = (url: string, opts: RequestInit = {}) => {
   const cleanBase = getApiBase();
-  const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
+  const fullUrl = url.startsWith("http")
+    ? url
+    : `${cleanBase}${url.startsWith("/api") ? url : `/api${url}`}`;
   return fetch(fullUrl, {
     ...opts,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}`, ...(opts.headers ?? {}) },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      ...(opts.headers ?? {}),
+    },
   });
 };
 
 function timeAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (s < 60) return 'just now';
+  if (s < 60) return "just now";
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
@@ -49,7 +80,7 @@ function timeAgo(iso: string) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Feed() {
-  const [activeCat, setActiveCat]   = useState('all');
+  const [activeCat, setActiveCat] = useState("all");
   const [showSuggest, setShowSuggest] = useState(false);
   const [commentPost, setCommentPost] = useState<any>(null);
   const queryClient = useQueryClient();
@@ -57,13 +88,13 @@ export default function Feed() {
   const { data: feedData, isLoading } = useGetFeed();
   const posts = feedData?.posts ?? [];
 
-  const filtered = activeCat === 'all'
-    ? posts
-    : posts.filter(p => (p.hashtags as string[])?.[0] === activeCat);
+  const filtered =
+    activeCat === "all"
+      ? posts
+      : posts.filter((p) => (p.hashtags as string[])?.[0] === activeCat);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-
       {/* ── Sticky header + filters ── */}
       <div className="sticky top-14 md:top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-white/6">
         <div className="flex items-center justify-between px-5 py-4">
@@ -72,8 +103,12 @@ export default function Feed() {
               <Globe size={16} className="text-primary" />
             </div>
             <div>
-              <h1 className="text-[17px] font-black text-white leading-none">New World</h1>
-              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">Explore · Suggest · Discover</p>
+              <h1 className="text-[17px] font-black text-white leading-none">
+                Stories
+              </h1>
+              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
+                Explore · Suggest · Discover
+              </p>
             </div>
           </div>
           <motion.button
@@ -87,16 +122,26 @@ export default function Feed() {
 
         {/* Category pills */}
         <div className="flex gap-2 px-5 pb-3 overflow-x-auto no-scrollbar">
-          {CATEGORIES.map(cat => {
+          {CATEGORIES.map((cat) => {
             const on = activeCat === cat.id;
             return (
               <motion.button
                 key={cat.id}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => setActiveCat(cat.id)}
-                style={on ? { background: cat.bg, borderColor: cat.border, color: cat.color } : {}}
+                style={
+                  on
+                    ? {
+                        background: cat.bg,
+                        borderColor: cat.border,
+                        color: cat.color,
+                      }
+                    : {}
+                }
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold border shrink-0 transition-all ${
-                  on ? 'border-current' : 'bg-white/5 border-white/8 text-muted-foreground hover:border-white/20 hover:text-white'
+                  on
+                    ? "border-current"
+                    : "bg-white/5 border-white/8 text-muted-foreground hover:border-white/20 hover:text-white"
                 }`}
               >
                 <cat.Icon size={11} strokeWidth={on ? 2.5 : 2} />
@@ -109,26 +154,31 @@ export default function Feed() {
 
       {/* ── Feed ── */}
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28">
-        {isLoading
-          ? [1, 2, 3].map(i => <CardSkeleton key={i} />)
-          : filtered.length === 0
-            ? <Empty cat={activeCat} onSuggest={() => setShowSuggest(true)} />
-            : filtered.map(post => (
-              <PlaceCard
-                key={post.id}
-                post={post}
-                onComment={() => setCommentPost(post)}
-                onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/feed'] })}
-              />
-            ))
-        }
+        {isLoading ? (
+          [1, 2, 3].map((i) => <CardSkeleton key={i} />)
+        ) : filtered.length === 0 ? (
+          <Empty cat={activeCat} onSuggest={() => setShowSuggest(true)} />
+        ) : (
+          filtered.map((post) => (
+            <PlaceCard
+              key={post.id}
+              post={post}
+              onComment={() => setCommentPost(post)}
+              onRefresh={() =>
+                queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
+              }
+            />
+          ))
+        )}
       </div>
 
       {/* Mobile FAB */}
       <motion.button
         whileTap={{ scale: 0.9 }}
         onClick={() => setShowSuggest(true)}
-        initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: 'spring' }}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.6, type: "spring" }}
         className="fixed bottom-24 right-5 md:hidden w-14 h-14 rounded-full bg-primary shadow-xl shadow-primary/30 flex items-center justify-center z-10"
       >
         <Plus size={22} strokeWidth={3} className="text-black" />
@@ -140,35 +190,52 @@ export default function Feed() {
           <SuggestModal
             onClose={() => setShowSuggest(false)}
             onCreated={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+              queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
               setShowSuggest(false);
             }}
           />
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {commentPost && <CommentDrawer post={commentPost} onClose={() => setCommentPost(null)} />}
+        {commentPost && (
+          <CommentDrawer
+            post={commentPost}
+            onClose={() => setCommentPost(null)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
 // ─── Place Card ───────────────────────────────────────────────────────────────
-function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () => void; onRefresh: () => void }) {
-  const [liked,  setLiked]  = useState(!!post.isLiked);
-  const [likes,  setLikes]  = useState(post.likesCount ?? 0);
+function PlaceCard({
+  post,
+  onComment,
+  onRefresh,
+}: {
+  post: any;
+  onComment: () => void;
+  onRefresh: () => void;
+}) {
+  const [liked, setLiked] = useState(!!post.isLiked);
+  const [likes, setLikes] = useState(post.likesCount ?? 0);
   const [liking, setLiking] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+  const [saved, setSaved] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
 
-  const images    = decodeImgs(post.imageUrl);
+  const images = decodeImgs(post.imageUrl);
   const placeName = decodeName(post.location);
   const placeCity = decodeCity(post.location);
-  const catId     = (post.hashtags as string[])?.[0] ?? 'all';
-  const cat       = getCat(catId);
-  const ratingTag = ((post.hashtags as string[]) ?? []).find((h: string) => typeof h === 'string' && h.startsWith('rating:'));
-  const ratingVal = ratingTag ? Number(ratingTag.split(':')[1]) : null;
-  const tags      = ((post.hashtags as string[]) ?? []).slice(1).filter((h: string) => typeof h === 'string' && !h.startsWith('rating:'));
+  const catId = (post.hashtags as string[])?.[0] ?? "all";
+  const cat = getCat(catId);
+  const ratingTag = ((post.hashtags as string[]) ?? []).find(
+    (h: string) => typeof h === "string" && h.startsWith("rating:"),
+  );
+  const ratingVal = ratingTag ? Number(ratingTag.split(":")[1]) : null;
+  const tags = ((post.hashtags as string[]) ?? [])
+    .slice(1)
+    .filter((h: string) => typeof h === "string" && !h.startsWith("rating:"));
 
   const handleLike = async () => {
     if (liking) return;
@@ -177,8 +244,10 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
     setLiked(next);
     setLikes((l: number) => l + (next ? 1 : -1));
     try {
-      await authFetch(`/api/posts/${post.id}/like`, { method: 'POST' });
-    } catch { /* optimistic — UI already updated */ }
+      await authFetch(`/api/posts/${post.id}/like`, { method: "POST" });
+    } catch {
+      /* optimistic — UI already updated */
+    }
     setLiking(false);
     onRefresh();
   };
@@ -212,7 +281,11 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md"
-              style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
+              style={{
+                color: cat.color,
+                background: cat.bg,
+                borderColor: cat.border,
+              }}
             >
               <cat.Icon size={10} strokeWidth={2.5} />
               {cat.label}
@@ -231,22 +304,26 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
             <>
               <button
                 disabled={imgIdx === 0}
-                onClick={() => setImgIdx(i => Math.max(0, i - 1))}
+                onClick={() => setImgIdx((i) => Math.max(0, i - 1))}
                 className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center backdrop-blur-sm disabled:opacity-20 transition-opacity"
               >
                 <ChevronLeft size={15} />
               </button>
               <button
                 disabled={imgIdx === images.length - 1}
-                onClick={() => setImgIdx(i => Math.min(images.length - 1, i + 1))}
+                onClick={() =>
+                  setImgIdx((i) => Math.min(images.length - 1, i + 1))
+                }
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center backdrop-blur-sm disabled:opacity-20 transition-opacity"
               >
                 <ChevronRight size={15} />
               </button>
               <div className="absolute bottom-[4.5rem] left-1/2 -translate-x-1/2 flex gap-1.5">
                 {images.map((_, i) => (
-                  <button key={i} onClick={() => setImgIdx(i)}
-                    className={`h-1 rounded-full transition-all ${i === imgIdx ? 'w-5 bg-primary' : 'w-1 bg-white/40'}`}
+                  <button
+                    key={i}
+                    onClick={() => setImgIdx(i)}
+                    className={`h-1 rounded-full transition-all ${i === imgIdx ? "w-5 bg-primary" : "w-1 bg-white/40"}`}
                   />
                 ))}
               </div>
@@ -256,11 +333,15 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
           {/* Place name overlay */}
           {placeName && (
             <div className="absolute bottom-4 left-4 right-4">
-              <h3 className="text-white font-black text-xl leading-tight drop-shadow-lg line-clamp-1">{placeName}</h3>
+              <h3 className="text-white font-black text-xl leading-tight drop-shadow-lg line-clamp-1">
+                {placeName}
+              </h3>
               {placeCity && (
                 <div className="flex items-center gap-1 mt-1">
                   <MapPin size={11} className="text-primary" />
-                  <span className="text-xs text-white/75 font-medium">{placeCity}</span>
+                  <span className="text-xs text-white/75 font-medium">
+                    {placeCity}
+                  </span>
                 </div>
               )}
             </div>
@@ -277,7 +358,11 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
               <div className="flex items-center gap-2 mb-2">
                 <div
                   className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black border"
-                  style={{ color: cat.color, background: cat.bg, borderColor: cat.border }}
+                  style={{
+                    color: cat.color,
+                    background: cat.bg,
+                    borderColor: cat.border,
+                  }}
                 >
                   <cat.Icon size={10} /> {cat.label}
                 </div>
@@ -288,11 +373,17 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
                   </div>
                 )}
               </div>
-              {placeName && <h3 className="text-white font-black text-lg leading-tight">{placeName}</h3>}
+              {placeName && (
+                <h3 className="text-white font-black text-lg leading-tight">
+                  {placeName}
+                </h3>
+              )}
               {placeCity && (
                 <div className="flex items-center gap-1 mt-0.5">
                   <MapPin size={11} className="text-primary" />
-                  <span className="text-sm text-muted-foreground">{placeCity}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {placeCity}
+                  </span>
                 </div>
               )}
             </div>
@@ -301,14 +392,21 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
 
         {/* Description */}
         {post.content && (
-          <p className="text-white/75 text-sm leading-relaxed mb-3 line-clamp-3">{post.content}</p>
+          <p className="text-white/75 text-sm leading-relaxed mb-3 line-clamp-3">
+            {post.content}
+          </p>
         )}
 
         {/* Extra tags */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {tags.map((t: string) => (
-              <span key={t} className="text-[11px] text-primary/80 bg-primary/8 px-2 py-0.5 rounded-full border border-primary/15">#{t}</span>
+              <span
+                key={t}
+                className="text-[11px] text-primary/80 bg-primary/8 px-2 py-0.5 rounded-full border border-primary/15"
+              >
+                #{t}
+              </span>
             ))}
           </div>
         )}
@@ -320,12 +418,16 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
           <Avatar className="w-7 h-7">
             <AvatarImage src={post.author?.avatarUrl} />
             <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-              {post.author?.name?.charAt(0) ?? '?'}
+              {post.author?.name?.charAt(0) ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs font-bold text-white/90 leading-none">{post.author?.name}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo(post.createdAt)}</p>
+            <p className="text-xs font-bold text-white/90 leading-none">
+              {post.author?.name}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {timeAgo(post.createdAt)}
+            </p>
           </div>
         </div>
 
@@ -334,10 +436,12 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
             whileTap={{ scale: 0.82 }}
             onClick={handleLike}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-              liked ? 'text-primary bg-primary/12' : 'text-muted-foreground hover:text-white'
+              liked
+                ? "text-primary bg-primary/12"
+                : "text-muted-foreground hover:text-white"
             }`}
           >
-            <Heart size={14} className={liked ? 'fill-primary' : ''} />
+            <Heart size={14} className={liked ? "fill-primary" : ""} />
             {likes > 0 && <span>{likes}</span>}
           </motion.button>
 
@@ -350,10 +454,10 @@ function PlaceCard({ post, onComment, onRefresh }: { post: any; onComment: () =>
           </button>
 
           <button
-            onClick={() => setSaved(s => !s)}
-            className={`p-1.5 rounded-full transition-colors ${saved ? 'text-primary' : 'text-muted-foreground hover:text-white'}`}
+            onClick={() => setSaved((s) => !s)}
+            className={`p-1.5 rounded-full transition-colors ${saved ? "text-primary" : "text-muted-foreground hover:text-white"}`}
           >
-            <Bookmark size={14} className={saved ? 'fill-primary' : ''} />
+            <Bookmark size={14} className={saved ? "fill-primary" : ""} />
           </button>
 
           <button className="p-1.5 rounded-full text-muted-foreground hover:text-white transition-colors">
@@ -380,20 +484,29 @@ function CardSkeleton() {
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
-function Empty({ cat: catId, onSuggest }: { cat: string; onSuggest: () => void }) {
+function Empty({
+  cat: catId,
+  onSuggest,
+}: {
+  cat: string;
+  onSuggest: () => void;
+}) {
   const cat = getCat(catId);
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center gap-5 py-20 text-center px-6"
     >
-      <div className="w-20 h-20 rounded-3xl flex items-center justify-center border-2"
-        style={{ background: cat.bg, borderColor: cat.border }}>
+      <div
+        className="w-20 h-20 rounded-3xl flex items-center justify-center border-2"
+        style={{ background: cat.bg, borderColor: cat.border }}
+      >
         <cat.Icon size={32} style={{ color: cat.color }} />
       </div>
       <div>
         <p className="text-white font-black text-lg">
-          No {catId === 'all' ? 'places' : cat.label + 's'} yet
+          No {catId === "all" ? "places" : cat.label + "s"} yet
         </p>
         <p className="text-muted-foreground text-sm mt-1.5 leading-relaxed max-w-xs">
           Be the first to share a hidden gem for the riding community!
@@ -412,15 +525,18 @@ function Empty({ cat: catId, onSuggest }: { cat: string; onSuggest: () => void }
 // ─── Comment Drawer ───────────────────────────────────────────────────────────
 function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
   const [comments, setComments] = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [text,     setText]     = useState('');
-  const [sending,  setSending]  = useState(false);
-  const placeName = decodeName(post.location) || 'this place';
+  const [loading, setLoading] = useState(true);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const placeName = decodeName(post.location) || "this place";
 
   useEffect(() => {
     authFetch(`/api/posts/${post.id}/comments`)
-      .then(r => r.json())
-      .then(d => { setComments(Array.isArray(d) ? d : []); setLoading(false); })
+      .then((r) => r.json())
+      .then((d) => {
+        setComments(Array.isArray(d) ? d : []);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [post.id]);
 
@@ -429,28 +545,35 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
     setSending(true);
     try {
       const res = await authFetch(`/api/posts/${post.id}/comments`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ content: text.trim() }),
       });
       if (res.ok) {
         const c = await res.json();
-        setComments(p => [c, ...p]);
-        setText('');
+        setComments((p) => [c, ...p]);
+        setText("");
       }
-    } catch { /* network error — silently ignore */ }
-    finally { setSending(false); }
+    } catch {
+      /* network error — silently ignore */
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
         onClick={onClose}
       />
       <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 28, stiffness: 260 }}
         className="fixed bottom-0 left-0 right-0 sm:max-w-lg sm:mx-auto z-[70] bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[75vh] flex flex-col"
       >
         <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -461,7 +584,10 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
             <h3 className="text-sm font-black text-white">Community Tips</h3>
             <p className="text-[10px] text-muted-foreground">{placeName}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+          >
             <X size={14} />
           </button>
         </div>
@@ -469,37 +595,47 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
           {loading ? (
             <div className="space-y-3">
-              {[1, 2].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+              ))}
             </div>
           ) : comments.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
               <MessageCircle size={26} className="opacity-25" />
               <p className="text-sm">No tips yet — be the first!</p>
             </div>
-          ) : comments.map(c => (
-            <div key={c.id} className="flex gap-3">
-              <Avatar className="w-8 h-8 shrink-0">
-                <AvatarImage src={c.author?.avatarUrl} />
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                  {c.author?.name?.charAt(0) ?? '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 bg-white/4 rounded-2xl px-3 py-2.5">
-                <div className="flex items-baseline gap-2 mb-0.5">
-                  <p className="text-xs font-black text-white">{c.author?.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{timeAgo(c.createdAt)}</p>
+          ) : (
+            comments.map((c) => (
+              <div key={c.id} className="flex gap-3">
+                <Avatar className="w-8 h-8 shrink-0">
+                  <AvatarImage src={c.author?.avatarUrl} />
+                  <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                    {c.author?.name?.charAt(0) ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 bg-white/4 rounded-2xl px-3 py-2.5">
+                  <div className="flex items-baseline gap-2 mb-0.5">
+                    <p className="text-xs font-black text-white">
+                      {c.author?.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {timeAgo(c.createdAt)}
+                    </p>
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed">
+                    {c.content}
+                  </p>
                 </div>
-                <p className="text-sm text-white/80 leading-relaxed">{c.content}</p>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         <div className="px-4 py-3 border-t border-white/6 flex gap-2 shrink-0 bg-[#0d0f10] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <input
             value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
             placeholder="Add a tip or ask something…"
             className="flex-1 px-4 py-2.5 rounded-2xl bg-white/6 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/40"
           />
@@ -508,7 +644,11 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
             disabled={!text.trim() || sending}
             className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-black disabled:opacity-40 shrink-0 cursor-pointer"
           >
-            {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={14} />}
+            {sending ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              <Send size={14} />
+            )}
           </button>
         </div>
       </motion.div>
