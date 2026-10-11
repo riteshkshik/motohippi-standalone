@@ -3,7 +3,7 @@ import { useGetMyProfile, useUpdateMyProfile, useGetFeed, useDeletePost } from '
 
 // authenticated fetch helper (mirrors how api-client-react works internally)
 async function authFetch(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('motohippi_token');
+  const token = localStorage.getItem('motohippi_token') || sessionStorage.getItem('motohippi_token') || '';
   const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const cleanBase = apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
   const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
@@ -20,6 +20,7 @@ async function authFetch(url: string, options: RequestInit = {}) {
 }
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadImage } from '@/lib/upload';
+import { SuggestModal } from '@/components/SuggestModal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -862,7 +863,10 @@ function PostsGrid({ profile }: { profile: any }) {
   const [deleting, setDeleting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const fallbackImages: string[] = [];
+  const fallbackImages: string[] = [
+    'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=600&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&auto=format&fit=crop&q=80',
+  ];
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -1130,11 +1134,10 @@ function PostsGrid({ profile }: { profile: any }) {
         )}
       </AnimatePresence>
 
-      {/* ── Create Post Modal ── */}
+      {/* ── Create Post / Suggest Modal ── */}
       <AnimatePresence>
         {createOpen && (
-          <CreatePostModal
-            profile={profile}
+          <SuggestModal
             onClose={() => setCreateOpen(false)}
             onCreated={() => {
               queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
@@ -1375,155 +1378,4 @@ function EditPostModal({ post, onClose, onSaved }: { post: any; onClose: () => v
   );
 }
 
-// ─── Create Post Modal ────────────────────────────────────────────────────
-function CreatePostModal({ profile, onClose, onCreated }: { profile: any; onClose: () => void; onCreated: () => void }) {
-  const [content, setContent] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [location, setLocation] = useState('');
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [creating, setCreating] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  const addTag = () => {
-    const tag = tagInput.trim().replace(/^#/, '');
-    if (tag && !hashtags.includes(tag)) setHashtags(prev => [...prev, tag]);
-    setTagInput('');
-  };
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => setImageUrl(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const handleCreate = async () => {
-    if (!content.trim() && !imageUrl) return;
-    setCreating(true);
-    try {
-      let finalImageUrl: string | undefined = undefined;
-      if (imageUrl) {
-        finalImageUrl = await uploadImage(imageUrl, 'posts');
-      }
-      const postContent = content.trim() || (location ? `Ride at ${location}` : 'New ride moment');
-      await authFetch('/api/posts', {
-        method: 'POST',
-        body: JSON.stringify({
-          content: postContent,
-          imageUrl: finalImageUrl || undefined,
-          location: location.trim() || undefined,
-          hashtags: hashtags.length ? hashtags : undefined,
-        }),
-      });
-      onCreated();
-    } catch (err) {
-      console.error('Failed to create post:', err);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-    >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <motion.div
-        className="relative w-full sm:max-w-lg bg-[#111] border border-white/10 rounded-t-3xl sm:rounded-3xl z-10 overflow-hidden flex flex-col max-h-[92vh]"
-        initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-primary/20">
-              <AvatarImage src={profile.avatarUrl || ''} className="object-cover" />
-              <AvatarFallback className="bg-primary/20 text-primary font-black text-sm">{profile.name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-black text-sm">{profile.name}</p>
-              <p className="text-[10px] text-primary/70">New Post</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center"><X size={16} /></button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <Textarea
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            autoFocus
-            className="bg-transparent border-none focus:ring-0 focus-visible:ring-0 text-base resize-none min-h-[100px] p-0 placeholder:text-muted-foreground/50"
-            placeholder="Share your ride story, route, or moment…"
-            maxLength={500}
-          />
-
-          {imageUrl && (
-            <div className="relative h-48 rounded-2xl overflow-hidden border border-white/8">
-              <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
-              <button onClick={() => setImageUrl('')} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/20 flex items-center justify-center hover:bg-black/80 transition-colors">
-                <X size={13} className="text-white" />
-              </button>
-            </div>
-          )}
-
-          {location && (
-            <div className="flex items-center gap-2 text-xs text-primary/80 font-semibold">
-              <Navigation2 size={12} /> {location}
-              <button onClick={() => setLocation('')} className="ml-1 hover:text-white"><X size={10} /></button>
-            </div>
-          )}
-
-          {hashtags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {hashtags.map(tag => (
-                <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-full">
-                  #{tag}
-                  <button onClick={() => setHashtags(prev => prev.filter(t => t !== tag))}><X size={10} /></button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Action bar */}
-        <div className="px-6 py-4 border-t border-white/8 shrink-0">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1">
-              <button onClick={() => fileRef.current?.click()} className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/8 flex items-center justify-center transition-all" title="Add Photo">
-                <ImagePlus size={16} className="text-primary" />
-              </button>
-              <button
-                onClick={() => { const loc = prompt('Enter location:'); if (loc) setLocation(loc); }}
-                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/8 flex items-center justify-center transition-all"
-                title="Add Location"
-              >
-                <Navigation2 size={15} className="text-blue-400" />
-              </button>
-              <button
-                onClick={() => {
-                  const tag = prompt('Add hashtag (without #):');
-                  if (tag?.trim()) setHashtags(prev => [...new Set([...prev, tag.trim().replace(/^#/, '')])]);
-                }}
-                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 hover:border-primary/40 hover:bg-white/8 flex items-center justify-center transition-all"
-                title="Add Hashtag"
-              >
-                <Hash size={15} className="text-amber-400" />
-              </button>
-            </div>
-            <button
-              onClick={handleCreate}
-              disabled={!content.trim() || creating}
-              className="px-6 py-2.5 rounded-full bg-primary text-black font-black text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-2"
-            >
-              {creating ? <><div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />Posting…</> : 'Post'}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}

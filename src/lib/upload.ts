@@ -1,18 +1,8 @@
 // Unified client-side upload & compression utility
 
-export async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<string> {
+export async function compressImage(fileOrDataUrl: File | string, maxDimension = 1600, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
-    // If not an image, read directly
-    if (!file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
+    const processDataUrl = (dataUrl: string) => {
       const img = new Image();
       img.onload = () => {
         let { width, height } = img;
@@ -31,7 +21,7 @@ export async function compressImage(file: File, maxDimension = 1600, quality = 0
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve(e.target?.result as string);
+          resolve(dataUrl);
           return;
         }
 
@@ -39,27 +29,51 @@ export async function compressImage(file: File, maxDimension = 1600, quality = 0
         const compressed = canvas.toDataURL('image/jpeg', quality);
         resolve(compressed);
       };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    };
+
+    if (typeof fileOrDataUrl === 'string') {
+      if (fileOrDataUrl.startsWith('data:image/')) {
+        processDataUrl(fileOrDataUrl);
+      } else {
+        resolve(fileOrDataUrl);
+      }
+      return;
+    }
+
+    // If not an image, read directly
+    if (!fileOrDataUrl.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(fileOrDataUrl);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (src) processDataUrl(src);
+      else resolve('');
     };
     reader.onerror = reject;
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(fileOrDataUrl);
   });
 }
 
 export async function uploadImage(fileOrDataUrl: File | string, folder = 'posts'): Promise<string> {
   try {
+    if (typeof fileOrDataUrl === 'string' && (fileOrDataUrl.startsWith('http://') || fileOrDataUrl.startsWith('https://'))) {
+      return fileOrDataUrl;
+    }
+
     const token = localStorage.getItem('motohippi_token');
     const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const cleanBase = apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
     const uploadUrl = `${cleanBase}/api/upload`;
 
-    let base64Data: string;
-    if (typeof fileOrDataUrl === 'string') {
-      base64Data = fileOrDataUrl;
-    } else {
-      base64Data = await compressImage(fileOrDataUrl);
-    }
+    const base64Data = await compressImage(fileOrDataUrl);
 
     const res = await fetch(uploadUrl, {
       method: 'POST',
@@ -75,11 +89,11 @@ export async function uploadImage(fileOrDataUrl: File | string, folder = 'posts'
       if (data?.url) return data.url;
     }
 
-    // Fallback to data URL if upload service returned non-OK or no url
+    // Fallback to compressed data URL if upload service returned non-OK or no url
     return base64Data;
   } catch (err) {
     console.warn('Image upload endpoint unavailable, using inline data:', err);
-    if (typeof fileOrDataUrl === 'string') return fileOrDataUrl;
+    if (typeof fileOrDataUrl === 'string' && !fileOrDataUrl.startsWith('data:image/')) return fileOrDataUrl;
     return compressImage(fileOrDataUrl);
   }
 }
