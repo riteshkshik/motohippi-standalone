@@ -33,9 +33,10 @@ import {
   ChevronRight, Bell, Shield, LogOut, User, Bike, Mountain,
   Globe, Phone, Mail, Lock, Trash2, ExternalLink,
   CheckCircle2, MoreHorizontal, MessageSquare, Plus, PenLine,
-  ImagePlus, Hash, Navigation2, Eye, AlertTriangle, Grid3x3, Loader2, Star
+  ImagePlus, Hash, Navigation2, Eye, EyeOff, AlertTriangle, Grid3x3, Loader2, Star
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── constants ──────────────────────────────────────────────────────────────
@@ -539,7 +540,17 @@ function EditProfileSheet({ profile, onClose }: { profile: any; onClose: () => v
 }
 
 // ─── Settings Sheet ────────────────────────────────────────────────────────
-function SettingsSheet({ profile, onClose }: { profile: any; onClose: () => void }) {
+function SettingsSheet({
+  profile,
+  onClose,
+  onToggleHide,
+  savingPrivacy,
+}: {
+  profile: any;
+  onClose: () => void;
+  onToggleHide: () => void;
+  savingPrivacy: boolean;
+}) {
   const { logout } = useAuth();
 
   const SettingRow = ({ icon: Icon, label, sublabel, onClick, danger = false, iconColor = '' }: {
@@ -588,7 +599,44 @@ function SettingsSheet({ profile, onClose }: { profile: any; onClose: () => void
         <div className="px-6 pt-4 pb-2">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Privacy & Safety</p>
         </div>
-        <SettingRow icon={Shield} label="Privacy Settings" sublabel="Who can see your profile" iconColor="text-emerald-400" />
+        {/* Hide / Unhide Profile Details Toggle */}
+        <div className="px-6 py-3.5 flex items-center justify-between hover:bg-white/4 transition-colors">
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                profile.hideProfileDetails ? 'bg-amber-400/10' : 'bg-emerald-400/10'
+              }`}
+            >
+              {profile.hideProfileDetails ? (
+                <EyeOff size={17} className="text-amber-400" />
+              ) : (
+                <Eye size={17} className="text-emerald-400" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Hide Profile Details</p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-[220px]">
+                {profile.hideProfileDetails
+                  ? 'Only name, cover, and profile photo are visible'
+                  : 'All profile details and ride info are visible'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onToggleHide}
+            disabled={savingPrivacy}
+            className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0 ${
+              profile.hideProfileDetails ? 'bg-primary' : 'bg-white/20'
+            }`}
+            title="Toggle hide profile details"
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-black transition-transform ${
+                profile.hideProfileDetails ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
         <SettingRow icon={Bell} label="Notifications" sublabel="Rides, matches, messages" iconColor="text-primary" />
         <SettingRow icon={Globe} label="Location Access" sublabel="Used for ride matching" iconColor="text-sky-400" />
 
@@ -620,6 +668,32 @@ export default function Profile() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAvatarEdit, setShowAvatarEdit] = useState(false);
   const [showCoverEdit, setShowCoverEdit] = useState(false);
+  const { toast } = useToast();
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
+
+  const toggleHideProfile = async () => {
+    if (savingPrivacy) return;
+    setSavingPrivacy(true);
+    const nextVal = !profile.hideProfileDetails;
+    try {
+      await updateProfile({ data: { hideProfileDetails: nextVal } });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+      toast({
+        title: nextVal ? "Profile details hidden" : "Profile details public",
+        description: nextVal
+          ? "Other riders will only see your name, avatar, and background image."
+          : "Your bio, ride specs, and personal details are now visible to others.",
+      });
+    } catch {
+      toast({
+        title: "Update failed",
+        description: "Could not change privacy settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPrivacy(false);
+    }
+  };
 
   const saveImage = useCallback(async (field: 'avatarUrl' | 'coverUrl', url: string) => {
     await updateProfile({ data: { [field]: url } });
@@ -721,7 +795,29 @@ export default function Profile() {
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2.5 pt-1 pb-1 flex-wrap">
+            <div className="flex gap-2.5 pt-1 pb-1 flex-wrap items-center">
+              <button
+                onClick={toggleHideProfile}
+                disabled={savingPrivacy}
+                className={`flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  profile.hideProfileDetails
+                    ? "bg-amber-400/10 border-amber-400/30 text-amber-400 hover:bg-amber-400/20"
+                    : "bg-white/5 border-white/15 text-white/80 hover:bg-white/10 hover:text-white"
+                }`}
+                title="Toggle whether your profile details are hidden from other riders"
+              >
+                {profile.hideProfileDetails ? (
+                  <>
+                    <EyeOff size={14} className="text-amber-400" />
+                    <span>Details Hidden</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye size={14} className="text-muted-foreground" />
+                    <span>Details Public</span>
+                  </>
+                )}
+              </button>
               <button
                 onClick={() => setShowEdit(true)}
                 className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 text-xs sm:text-sm font-bold transition-all"
@@ -817,7 +913,14 @@ export default function Profile() {
         {showShare && <ShareModal profile={profile} onClose={() => setShowShare(false)} />}
       </AnimatePresence>
       <AnimatePresence>
-        {showSettings && <SettingsSheet profile={profile} onClose={() => setShowSettings(false)} />}
+        {showSettings && (
+          <SettingsSheet
+            profile={profile}
+            onClose={() => setShowSettings(false)}
+            onToggleHide={toggleHideProfile}
+            savingPrivacy={savingPrivacy}
+          />
+        )}
       </AnimatePresence>
       <AnimatePresence>
         {showAvatarEdit && (

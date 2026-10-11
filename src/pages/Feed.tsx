@@ -47,6 +47,7 @@ import {
   decodeImgs,
   SuggestModal,
 } from "@/components/SuggestModal";
+import { UserProfileModal } from "@/components/UserProfileModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("motohippi_token") || "";
@@ -86,6 +87,7 @@ export default function Feed() {
   const [activeCat, setActiveCat] = useState("all");
   const [showSuggest, setShowSuggest] = useState(false);
   const [commentPost, setCommentPost] = useState<any>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -287,6 +289,7 @@ export default function Feed() {
               post={post}
               isHighlighted={post.id === targetPostId}
               onComment={() => setCommentPost(post)}
+              onViewAuthor={(id) => setSelectedUserId(id)}
               onRefresh={() =>
                 queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
               }
@@ -324,6 +327,16 @@ export default function Feed() {
           <CommentDrawer
             post={commentPost}
             onClose={() => setCommentPost(null)}
+            onViewAuthor={(id) => setSelectedUserId(id)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedUserId && (
+          <UserProfileModal
+            userId={selectedUserId}
+            onClose={() => setSelectedUserId(null)}
           />
         )}
       </AnimatePresence>
@@ -336,11 +349,13 @@ function PlaceCard({
   post,
   onComment,
   onRefresh,
+  onViewAuthor,
   isHighlighted = false,
 }: {
   post: any;
   onComment: () => void;
   onRefresh: () => void;
+  onViewAuthor: (userId: number) => void;
   isHighlighted?: boolean;
 }) {
   const [liked, setLiked] = useState(!!post.isLiked);
@@ -584,15 +599,22 @@ function PlaceCard({
 
       {/* Footer */}
       <div className="px-4 py-3 flex items-center justify-between border-t border-white/5">
-        <div className="flex items-center gap-2">
-          <Avatar className="w-7 h-7">
+        <div
+          onClick={() => {
+            const authorId = post.author?.id || post.userId;
+            if (authorId) onViewAuthor(authorId);
+          }}
+          className="flex items-center gap-2 cursor-pointer group hover:opacity-90 transition-opacity"
+          title="View rider profile"
+        >
+          <Avatar className="w-7 h-7 ring-1 ring-white/10 group-hover:ring-primary/40 transition-all">
             <AvatarImage src={post.author?.avatarUrl} />
             <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
               {post.author?.name?.charAt(0) ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs font-bold text-white/90 leading-none">
+            <p className="text-xs font-bold text-white/90 leading-none group-hover:text-primary transition-colors">
               {post.author?.name}
             </p>
             <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -691,7 +713,15 @@ function Empty({
 }
 
 // ─── Comment Drawer ───────────────────────────────────────────────────────────
-function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
+function CommentDrawer({
+  post,
+  onClose,
+  onViewAuthor,
+}: {
+  post: any;
+  onClose: () => void;
+  onViewAuthor: (userId: number) => void;
+}) {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
@@ -783,7 +813,14 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
           ) : (
             comments.map((c) => (
               <div key={c.id} className="flex gap-3">
-                <Avatar className="w-8 h-8 shrink-0">
+                <Avatar
+                  onClick={() => {
+                    const authorId = c.author?.id || c.userId;
+                    if (authorId) onViewAuthor(authorId);
+                  }}
+                  className="w-8 h-8 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+                  title="View rider profile"
+                >
                   <AvatarImage src={c.author?.avatarUrl} />
                   <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
                     {c.author?.name?.charAt(0) ?? "?"}
@@ -791,7 +828,13 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
                 </Avatar>
                 <div className="flex-1 bg-white/4 rounded-2xl px-3 py-2.5">
                   <div className="flex items-baseline gap-2 mb-0.5">
-                    <p className="text-xs font-black text-white">
+                    <p
+                      onClick={() => {
+                        const authorId = c.author?.id || c.userId;
+                        if (authorId) onViewAuthor(authorId);
+                      }}
+                      className="text-xs font-black text-white hover:text-primary transition-colors cursor-pointer"
+                    >
                       {c.author?.name}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
