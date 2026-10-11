@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 import { useGetFeed } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +26,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
-  Bookmark,
   Upload,
   CheckCircle2,
   Camera,
@@ -33,6 +34,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { useToast } from "@/hooks/use-toast";
 import { uploadImage } from "@/lib/upload";
 
 import {
@@ -80,10 +82,36 @@ function timeAgo(iso: string) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Feed() {
+  const { isLoggedIn } = useAuth();
   const [activeCat, setActiveCat] = useState("all");
   const [showSuggest, setShowSuggest] = useState(false);
   const [commentPost, setCommentPost] = useState<any>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [searchParams, setSearchParams] = useState(() =>
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams(),
+  );
+
+  const rawPostParam = searchParams.get("post");
+  const parsedPostId = rawPostParam
+    ? parseInt(rawPostParam.trim().split(/\s+/)[0], 10)
+    : null;
+  const targetPostId = Number.isFinite(parsedPostId) ? parsedPostId : null;
+
+  // Direct fetch for shared post to guarantee deep-link works even for guests
+  const { data: linkedPost, isLoading: isLinkedLoading } = useQuery({
+    queryKey: ["/api/posts", targetPostId],
+    queryFn: async () => {
+      if (!targetPostId) return null;
+      const res = await authFetch(`/api/posts/${targetPostId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!targetPostId,
+  });
 
   const { data: feedData, isLoading } = useGetFeed();
   const posts = feedData?.posts ?? [];
@@ -92,6 +120,35 @@ export default function Feed() {
     activeCat === "all"
       ? posts
       : posts.filter((p) => (p.hashtags as string[])?.[0] === activeCat);
+
+  // If a post is linked via ?post=ID, ONLY show that particular post
+  const displayedPosts = useMemo(() => {
+    if (targetPostId) {
+      if (linkedPost) return [linkedPost];
+      const match = posts.find((p) => p.id === targetPostId);
+      if (match) return [match];
+      return [];
+    }
+    return filtered;
+  }, [filtered, posts, targetPostId, linkedPost]);
+
+  const clearTargetPost = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("post");
+    window.history.replaceState({}, "", url.pathname);
+    setSearchParams(new URLSearchParams());
+  };
+
+  const handleSuggestClick = () => {
+    if (!isLoggedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Join MotoHippi to recommend spots & share ride stories!",
+      });
+      return;
+    }
+    setShowSuggest(true);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -113,8 +170,8 @@ export default function Feed() {
           </div>
           <motion.button
             whileTap={{ scale: 0.94 }}
-            onClick={() => setShowSuggest(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-black text-[13px] font-black hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            onClick={handleSuggestClick}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-black text-[13px] font-black hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
           >
             <Plus size={14} strokeWidth={3} /> Suggest
           </motion.button>
@@ -138,7 +195,7 @@ export default function Feed() {
                       }
                     : {}
                 }
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold border shrink-0 transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold border shrink-0 transition-all cursor-pointer ${
                   on
                     ? "border-current"
                     : "bg-white/5 border-white/8 text-muted-foreground hover:border-white/20 hover:text-white"
@@ -154,15 +211,81 @@ export default function Feed() {
 
       {/* ── Feed ── */}
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28">
-        {isLoading ? (
+        {/* Guest invitation banner */}
+        {!isLoggedIn && (
+          <div className="flex items-center justify-between p-4 rounded-3xl bg-gradient-to-r from-primary/15 via-white/5 to-transparent border border-primary/25 text-white shadow-lg">
+            <div className="pr-3">
+              <p className="text-sm font-black flex items-center gap-1.5 text-primary">
+                <Sparkles size={14} /> Welcome Rider!
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Explore spots & routes. Join free to like, comment & share.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link href="/login">
+                <button className="px-3 py-1.5 rounded-full text-xs font-bold bg-white/10 hover:bg-white/20 transition-colors cursor-pointer text-white">
+                  Log In
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button className="px-3.5 py-1.5 rounded-full text-xs font-black bg-primary text-black hover:bg-primary/90 transition-colors cursor-pointer shadow-md shadow-primary/20">
+                  Join Free
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Deep link active banner */}
+        {targetPostId && (
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-primary/10 border border-primary/30 text-white shadow-md">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles size={16} className="text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-black truncate">Viewing shared spot</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {linkedPost
+                    ? decodeName(linkedPost.location) || "Shared recommendation"
+                    : "Direct recommendation from link"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={clearTargetPost}
+              className="px-3.5 py-1.5 rounded-full text-xs font-black bg-primary text-black hover:bg-primary/90 transition-colors shrink-0 cursor-pointer shadow-md shadow-primary/20"
+            >
+              View all spots
+            </button>
+          </div>
+        )}
+
+        {isLoading || (targetPostId && isLinkedLoading) ? (
           [1, 2, 3].map((i) => <CardSkeleton key={i} />)
-        ) : filtered.length === 0 ? (
-          <Empty cat={activeCat} onSuggest={() => setShowSuggest(true)} />
+        ) : displayedPosts.length === 0 ? (
+          targetPostId ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center bg-card/20 rounded-3xl border border-white/6 p-6">
+              <MapPin className="w-12 h-12 text-muted-foreground/30 mb-3" />
+              <h3 className="text-base font-black text-white">Spot not found</h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                This post may have been removed or the link is invalid.
+              </p>
+              <button
+                onClick={clearTargetPost}
+                className="mt-4 px-4 py-2 rounded-full bg-primary text-black text-xs font-black cursor-pointer hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
+              >
+                Explore all spots
+              </button>
+            </div>
+          ) : (
+            <Empty cat={activeCat} onSuggest={handleSuggestClick} />
+          )
         ) : (
-          filtered.map((post) => (
+          displayedPosts.map((post) => (
             <PlaceCard
               key={post.id}
               post={post}
+              isHighlighted={post.id === targetPostId}
               onComment={() => setCommentPost(post)}
               onRefresh={() =>
                 queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
@@ -175,11 +298,11 @@ export default function Feed() {
       {/* Mobile FAB */}
       <motion.button
         whileTap={{ scale: 0.9 }}
-        onClick={() => setShowSuggest(true)}
+        onClick={handleSuggestClick}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ delay: 0.6, type: "spring" }}
-        className="fixed bottom-24 right-5 md:hidden w-14 h-14 rounded-full bg-primary shadow-xl shadow-primary/30 flex items-center justify-center z-10"
+        className="fixed bottom-24 right-5 md:hidden w-14 h-14 rounded-full bg-primary shadow-xl shadow-primary/30 flex items-center justify-center z-10 cursor-pointer"
       >
         <Plus size={22} strokeWidth={3} className="text-black" />
       </motion.button>
@@ -213,16 +336,18 @@ function PlaceCard({
   post,
   onComment,
   onRefresh,
+  isHighlighted = false,
 }: {
   post: any;
   onComment: () => void;
   onRefresh: () => void;
+  isHighlighted?: boolean;
 }) {
   const [liked, setLiked] = useState(!!post.isLiked);
   const [likes, setLikes] = useState(post.likesCount ?? 0);
   const [liking, setLiking] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
+  const { toast } = useToast();
 
   const images = decodeImgs(post.imageUrl);
   const placeName = decodeName(post.location);
@@ -238,6 +363,17 @@ function PlaceCard({
     .filter((h: string) => typeof h === "string" && !h.startsWith("rating:"));
 
   const handleLike = async () => {
+    const token =
+      localStorage.getItem("motohippi_token") ||
+      sessionStorage.getItem("motohippi_token");
+    if (!token) {
+      toast({
+        title: "Sign in required",
+        description: "Join MotoHippi to like spots and connect with riders.",
+      });
+      return;
+    }
+
     if (liking) return;
     setLiking(true);
     const next = !liked;
@@ -252,11 +388,45 @@ function PlaceCard({
     onRefresh();
   };
 
+  const handleShare = async () => {
+    const postUrl = `${window.location.origin}/feed?post=${post.id}`;
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: placeName || "MotoHippi Spot",
+          url: postUrl,
+        });
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      toast({
+        title: "Link copied!",
+        description: "Direct post link copied to clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Share failed",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl overflow-hidden border border-white/8 bg-card/40 backdrop-blur-sm"
+      className={`rounded-3xl overflow-hidden border bg-card/40 backdrop-blur-sm transition-all duration-300 ${
+        isHighlighted
+          ? "border-primary ring-2 ring-primary/40 shadow-xl shadow-primary/20"
+          : "border-white/8"
+      }`}
     >
       {/* Image section */}
       {images.length > 0 && (
@@ -453,16 +623,14 @@ function PlaceCard({
             {post.commentsCount > 0 && <span>{post.commentsCount}</span>}
           </button>
 
-          <button
-            onClick={() => setSaved((s) => !s)}
-            className={`p-1.5 rounded-full transition-colors ${saved ? "text-primary" : "text-muted-foreground hover:text-white"}`}
+          <motion.button
+            whileTap={{ scale: 0.82 }}
+            onClick={handleShare}
+            className="p-1.5 rounded-full text-muted-foreground hover:text-white transition-colors cursor-pointer"
+            title="Share post"
           >
-            <Bookmark size={14} className={saved ? "fill-primary" : ""} />
-          </button>
-
-          <button className="p-1.5 rounded-full text-muted-foreground hover:text-white transition-colors">
             <Share2 size={14} />
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.article>
@@ -528,6 +696,7 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const { toast } = useToast();
   const placeName = decodeName(post.location) || "this place";
 
   useEffect(() => {
@@ -542,6 +711,13 @@ function CommentDrawer({ post, onClose }: { post: any; onClose: () => void }) {
 
   const send = async () => {
     if (!text.trim() || sending) return;
+    if (!getToken()) {
+      toast({
+        title: "Sign in required",
+        description: "Join or log in to MotoHippi to post community tips!",
+      });
+      return;
+    }
     setSending(true);
     try {
       const res = await authFetch(`/api/posts/${post.id}/comments`, {
