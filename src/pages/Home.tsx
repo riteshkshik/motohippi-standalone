@@ -307,11 +307,13 @@ function ConnectDiscoverBanner() {
   return (
     <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-[#101214]">
       <img
-        src="/connect_discover.jpeg"
+        src="/connect_discover.jpeg?v=2"
         alt="MotoHippi - Connect & Discover"
         className="w-full h-auto object-cover object-center select-none"
         loading="eager"
       />
+      {/* Subtle bottom gradient mask for seamless card overlay contrast */}
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#070A0F] via-[#070A0F]/60 to-transparent pointer-events-none" />
     </div>
   );
 }
@@ -337,11 +339,11 @@ export default function Home() {
 
       {/* ── Page Content ── */}
       <div className="relative z-10 px-4 py-5 md:px-6 md:py-8 max-w-7xl mx-auto space-y-8 md:space-y-10 animate-in fade-in duration-500">
-        {/* Connect & Discover Top Hero Banner */}
-        <ConnectDiscoverBanner />
-
-        {/* Quick Actions */}
-        <QuickActions />
+        {/* Hero Section with Overlaid Action Cards */}
+        <div className="relative">
+          <ConnectDiscoverBanner />
+          <QuickActions />
+        </div>
 
         {/* Make Friends * Travel * Chill — Lottie Hero */}
         <LottieHeroBanner />

@@ -18,7 +18,7 @@ const QUICK_ACTIONS: QuickActionItem[] = [
     title: "Meet New Friends",
     subtitle: "Connect with riders near you",
     href: "/discover",
-    image: "/quick-actions/meet-friends.jpg",
+    image: "/quick-actions/meet-friends.jpg?v=2",
     icon: Users,
   },
   {
@@ -26,7 +26,7 @@ const QUICK_ACTIONS: QuickActionItem[] = [
     title: "Action Camera DJI & Helmet Shop",
     subtitle: "Gear up for your next ride",
     href: "/marketplace",
-    image: "/quick-actions/camera-helmet.jpg",
+    image: "/quick-actions/camera-helmet.jpg?v=2",
     icon: Camera,
   },
   {
@@ -34,22 +34,14 @@ const QUICK_ACTIONS: QuickActionItem[] = [
     title: "Motor Insurance",
     subtitle: "Best rates. Guaranteed cashback.",
     href: "/insurance",
-    image: "/quick-actions/motor-insurance.jpg",
+    image: "/quick-actions/motor-insurance.jpg?v=2",
     icon: Shield,
   },
 ];
 
 export function QuickActions() {
   return (
-    <section className="space-y-4">
-      {/* Section Header */}
-      <div className="flex items-center gap-2.5">
-        <span className="w-5 h-1.5 rounded-full bg-[#D6FF2F] inline-block shadow-[0_0_10px_rgba(214,255,47,0.5)]" />
-        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-          Quick Actions
-        </h2>
-      </div>
-
+    <section className="relative z-20 -mt-12 sm:-mt-20 md:-mt-28 lg:-mt-32 px-2 sm:px-4 md:px-6">
       {/* 3-Column Card Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
         {QUICK_ACTIONS.map((action, idx) => {
@@ -62,7 +54,7 @@ export function QuickActions() {
               transition={{ duration: 0.4, delay: idx * 0.1 }}
             >
               <Link href={action.href} className="group block h-full focus:outline-none">
-                <div className="relative overflow-hidden rounded-[26px] bg-[#101214] border border-white/10 group-hover:border-[#D6FF2F]/40 transition-all duration-300 group-hover:shadow-[0_12px_36px_rgba(0,0,0,0.6)] flex flex-col h-full">
+                <div className="relative overflow-hidden rounded-[26px] bg-[#101214]/95 backdrop-blur-md border border-white/10 group-hover:border-[#D6FF2F]/40 transition-all duration-300 shadow-[0_16px_40px_rgba(0,0,0,0.7)] group-hover:shadow-[0_20px_48px_rgba(0,0,0,0.9)] flex flex-col h-full">
                   {/* Top Image Banner */}
                   <div className="relative h-44 sm:h-48 md:h-52 w-full overflow-hidden bg-black/40">
                     <img
