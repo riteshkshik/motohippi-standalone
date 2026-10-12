@@ -488,9 +488,10 @@ export default function Messages() {
 
   const isChatOpen = !!activeId || !!activeGroupId;
 
-  // Prevent background scrolling and window jumping on iOS when chat is open
+  // Prevent background scrolling and window jumping on iOS when chat is open on mobile
   useEffect(() => {
     if (!isChatOpen) return;
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) return;
 
     const originalOverflow = document.body.style.overflow;
     const originalPosition = document.body.style.position;
@@ -513,7 +514,7 @@ export default function Messages() {
   return (
     <div className={`flex ${isChatOpen ? 'h-[100dvh]' : 'h-[calc(100dvh-3.5rem-5rem)]'} md:h-svh overflow-hidden`}>
       {/* Conversations / Groups Sidebar */}
-      <div className={`w-full md:w-80 border-r border-white/5 bg-background flex flex-col ${isChatOpen ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-80 border-r border-white/5 bg-[#0e0e10] flex flex-col relative z-10 shrink-0 ${isChatOpen ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-white/5 shrink-0 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-black text-white tracking-tight">Messages</h2>
@@ -763,17 +764,17 @@ export default function Messages() {
       <div
         className={`flex flex-col relative overflow-hidden bg-background ${
           isChatOpen
-            ? 'fixed left-0 right-0 z-[60] flex md:static md:flex-1 md:z-auto'
-            : 'hidden md:flex md:flex-1'
+            ? 'max-md:fixed max-md:left-0 max-md:right-0 max-md:z-[60] flex md:relative md:flex-1 md:z-auto'
+            : 'hidden md:flex md:flex-1 md:relative'
         }`}
         style={
-          isChatOpen && viewportState
+          isChatOpen && typeof window !== 'undefined' && window.innerWidth < 768 && viewportState
             ? {
                 top: `${viewportState.top}px`,
                 height: `${viewportState.height}px`,
                 maxHeight: `${viewportState.height}px`,
               }
-            : isChatOpen
+            : isChatOpen && typeof window !== 'undefined' && window.innerWidth < 768
             ? { top: 0, bottom: 0 }
             : undefined
         }
