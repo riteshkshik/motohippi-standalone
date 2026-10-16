@@ -108,7 +108,7 @@ const FindPartnerIcon = ({
         key={i}
         className="absolute inset-0 rounded-full"
         style={{
-          border: `1.5px solid ${active ? "#D6FF2F" : "rgba(214,255,47,0.55)"}`,
+          border: `1.5px solid ${active ? "#b6fa0f" : "rgba(182, 250, 15, 0.55)"}`,
         }}
         initial={{ scale: 0.5, opacity: 0.8 }}
         animate={{ scale: 2.4 + i * 0.8, opacity: 0 }}
@@ -124,7 +124,7 @@ const FindPartnerIcon = ({
       size={size * 0.88}
       strokeWidth={active ? 2.4 : 1.9}
       className="relative z-10"
-      style={{ color: active ? "#D6FF2F" : "currentColor" }}
+      style={{ color: active ? "#b6fa0f" : "currentColor" }}
     />
   </span>
 );
@@ -645,14 +645,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <button
                   className={`relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[52px] min-h-[48px] justify-center transition-all ${
                     active
-                      ? "text-primary"
+                      ? "text-[#b6fa0f]"
                       : "text-white/40 hover:text-white/70"
                   }`}
                 >
                   {active && (
                     <motion.div
                       layoutId="mobile-pill"
-                      className="absolute inset-0 bg-primary/10 rounded-xl"
+                      className="absolute inset-0 bg-[#b6fa0f]/15 border border-[#b6fa0f]/25 rounded-xl shadow-[0_0_15px_rgba(182,250,15,0.18)]"
                       transition={{
                         type: "spring",
                         stiffness: 400,
@@ -670,7 +670,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     />
                   )}
                   {item.href === "/messages" && unreadCount > 0 && (
-                    <span className="absolute top-1 right-2 min-w-[16px] h-[16px] px-0.5 rounded-full bg-primary text-black text-[9px] font-black flex items-center justify-center shadow-md">
+                    <span className="absolute top-1 right-2 min-w-[16px] h-[16px] px-0.5 rounded-full bg-[#b6fa0f] text-black text-[9px] font-black flex items-center justify-center shadow-md">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
