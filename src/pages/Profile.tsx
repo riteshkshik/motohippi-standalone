@@ -721,7 +721,7 @@ export default function Profile() {
 
   return (
     <>
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-[#FFDB58] pb-20">
         {/* ── Cover Photo ── */}
         <div className="h-[19vh] sm:h-[26vh] md:h-[38vh] relative w-full bg-card group">
           <img

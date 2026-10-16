@@ -1928,7 +1928,7 @@ export default function Discover() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex relative">
+    <div className="min-h-screen bg-[#FFDB58] flex relative">
       {/* ─── Match Overlay ─── */}
       <AnimatePresence>
         {matchData && (
@@ -2086,7 +2086,7 @@ export default function Discover() {
       {/* ─── MAIN AREA ─── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* ─── TOP BAR ─── */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/5 shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/10 shrink-0 bg-[#070A0F]/90 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             {/* Mobile filter button */}
             <Drawer open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>

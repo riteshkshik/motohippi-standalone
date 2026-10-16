@@ -238,7 +238,7 @@ export default function Insurance() {
   const availableModels = form.manufacturer ? (activeDataset[form.manufacturer] || []) : [];
 
   return (
-    <div className="min-h-screen bg-[#070A0F] text-foreground font-sans selection:bg-primary selection:text-black pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFDB58] text-foreground font-sans selection:bg-primary selection:text-black pb-24 overflow-x-hidden">
       
       {/* ─── 1. Hero Banner ──────────────────────────────────────────────────────── */}
       <section className="relative min-h-[520px] md:min-h-[580px] flex items-center justify-center pt-8 pb-12 overflow-hidden border-b border-white/5">

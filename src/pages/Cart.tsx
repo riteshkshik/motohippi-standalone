@@ -380,7 +380,7 @@ export default function CartPage() {
 
   return (
     <>
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-[#FFDB58] pb-24">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center gap-4">

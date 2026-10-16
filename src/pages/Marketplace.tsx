@@ -56,7 +56,7 @@ export default function Marketplace() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] md:min-h-screen overflow-hidden text-white flex flex-col justify-between">
+    <div className="relative min-h-[calc(100vh-4rem)] md:min-h-screen overflow-hidden text-white flex flex-col justify-between bg-[#FFDB58]">
       {/* ── Background Atmosphere with the provided image ── */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110 pointer-events-none"

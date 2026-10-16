@@ -609,7 +609,7 @@ export default function Messages() {
 
   return (
     <div
-      className={`flex ${isChatOpen ? "h-[100dvh]" : "h-[calc(100dvh-3.5rem-5rem)]"} md:h-svh overflow-hidden`}
+      className={`flex ${isChatOpen ? "h-[100dvh]" : "h-[calc(100dvh-3.5rem-5rem)]"} md:h-svh overflow-hidden bg-[#FFDB58]`}
     >
       {/* Conversations / Groups Sidebar */}
       <div
