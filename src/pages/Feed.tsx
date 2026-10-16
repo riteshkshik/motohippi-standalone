@@ -155,8 +155,8 @@ export default function Feed() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* ── Sticky header + filters ── */}
-      <div className="sticky top-14 md:top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-white/6">
-        <div className="flex items-center justify-between px-5 py-4">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-xl border-b border-white/6">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
               <Globe size={16} className="text-primary" />
@@ -180,7 +180,7 @@ export default function Feed() {
         </div>
 
         {/* Category pills */}
-        <div className="flex gap-2 px-5 pb-3 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 px-4 sm:px-5 pb-2.5 overflow-x-auto no-scrollbar">
           {CATEGORIES.map((cat) => {
             const on = activeCat === cat.id;
             return (
