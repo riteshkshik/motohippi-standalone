@@ -321,7 +321,7 @@ function ConnectDiscoverBanner() {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-[#070A0F] text-foreground font-sans overflow-x-hidden pb-16">
+    <div className="relative min-h-screen bg-[#FFDB58] text-foreground font-sans overflow-x-hidden pb-16">
       {/* ── Signature Topographic Contour Background (Matches Insurance Page) ── */}
       <div className="absolute top-0 left-0 right-0 h-[650px] md:h-[750px] z-0 overflow-hidden pointer-events-none border-b border-white/5">
         <img
@@ -354,4 +354,3 @@ export default function Home() {
     </div>
   );
 }
-
