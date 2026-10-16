@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useGetConversations, useListMessages, useSendMessage, useGetMatches } from '@workspace/api-client-react';
+import { useGetConversations, useListMessages, useSendMessage } from '@workspace/api-client-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-  Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X, Heart, Sparkles,
+  Send, Search, Info, ChevronLeft, MessageCircle, Users, Check, X, Sparkles,
   Image as ImageIcon, Loader2, Maximize2, Plus, Shield, Lock, Crown, MapPin, UserPlus
 } from 'lucide-react';
 
@@ -269,55 +269,6 @@ function GroupJoinRequestCard({ payload, conversationId }: { payload: string; co
         )}
       </AnimatePresence>
     </motion.div>
-  );
-}
-
-// ─── Match Banner (top of conversations list) ─────────────────────────────────
-function MatchesBanner({ onOpen, searchQuery = '' }: { onOpen: (convId: number) => void; searchQuery?: string }) {
-  const { data: matches } = useGetMatches();
-  const matchesList = Array.isArray(matches) ? matches : [];
-  const query = searchQuery.trim().toLowerCase();
-
-  const filtered = matchesList.filter(m => {
-    if (!query) return true;
-    const name = (m.user as any)?.name?.toLowerCase() || '';
-    return name.includes(query);
-  });
-
-  const recent = filtered.slice(0, 5);
-  if (!recent.length) return null;
-
-  return (
-    <div className="px-3 py-3 border-b border-white/5">
-      <p className="text-[11px] font-black uppercase tracking-wider text-primary/70 mb-2 flex items-center gap-1">
-        <Heart size={11} className="fill-primary" /> Active Matches
-      </p>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        {recent.map(m => (
-          <motion.button
-            key={m.id}
-            onClick={() => m.conversationId && onOpen(m.conversationId)}
-            whileTap={{ scale: 0.92 }}
-            className="flex flex-col items-center gap-1 shrink-0"
-          >
-            <div className="relative">
-              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary shadow-[0_0_10px_rgba(214,255,47,0.25)]">
-                {(m.user as any)?.avatarUrl
-                  ? <img src={(m.user as any).avatarUrl} alt={(m.user as any).name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-lg">{((m.user as any)?.name?.[0] ?? '?').toUpperCase()}</div>
-                }
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center border border-background">
-                <span className="text-[8px]">❤️</span>
-              </div>
-            </div>
-            <p className="text-[10px] font-semibold text-white/70 truncate w-14 text-center">
-              {(m.user as any)?.name?.split(' ')[0]}
-            </p>
-          </motion.button>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -591,9 +542,6 @@ export default function Messages() {
           <>
             {/* Pending Ride Request Card Banner */}
             <PendingRequestsBanner onAccept={handleAcceptMatch} />
-
-            {/* Match bubbles */}
-            <MatchesBanner onOpen={openDirectChat} searchQuery={searchQuery} />
 
             <div className="flex-1 overflow-y-auto no-scrollbar p-2">
               {convLoading ? (
