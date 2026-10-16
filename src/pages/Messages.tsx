@@ -45,6 +45,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import CreateGroupModal from "@/components/CreateGroupModal";
+import { playNotificationSound } from "@/lib/sound";
 
 const getApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -101,6 +102,12 @@ function PendingRequestsBanner({
 
   useEffect(() => {
     fetchPending();
+
+    const handleMatchEvent = () => {
+      fetchPending();
+    };
+    window.addEventListener("motohippi_match_request", handleMatchEvent);
+    return () => window.removeEventListener("motohippi_match_request", handleMatchEvent);
   }, []);
 
   const handleAccept = async (reqId: number) => {
@@ -375,7 +382,11 @@ export default function Messages() {
     data: conversations,
     isLoading: convLoading,
     refetch: refetchConvs,
-  } = useGetConversations();
+  } = useGetConversations({
+    query: {
+      refetchInterval: 5000,
+    },
+  });
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"direct" | "groups">("direct");
@@ -400,8 +411,26 @@ export default function Messages() {
       if (!res.ok) return [];
       return (await res.json()) as any[];
     },
-    refetchInterval: 15000,
+    refetchInterval: 5000,
   });
+
+  // Listen to real-time events to refresh conversation and group lists immediately
+  useEffect(() => {
+    const handleLiveRefresh = () => {
+      refetchConvs();
+      refetchGroups();
+    };
+
+    window.addEventListener("motohippi_new_message", handleLiveRefresh);
+    window.addEventListener("motohippi_new_group_message", handleLiveRefresh);
+    window.addEventListener("motohippi_match_request", handleLiveRefresh);
+
+    return () => {
+      window.removeEventListener("motohippi_new_message", handleLiveRefresh);
+      window.removeEventListener("motohippi_new_group_message", handleLiveRefresh);
+      window.removeEventListener("motohippi_match_request", handleLiveRefresh);
+    };
+  }, [refetchConvs, refetchGroups]);
 
   const myGroupsList = Array.isArray(myGroups) ? myGroups : [];
   const conversationsList = Array.isArray(conversations) ? conversations : [];
@@ -987,6 +1016,9 @@ function ChatView({
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
+      if (msg.senderId !== user?.id) {
+        playNotificationSound();
+      }
       // Mark as read immediately when user is in active chat
       refetchUnread();
     }
@@ -1465,6 +1497,9 @@ function GroupChatView({
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
+      if (msg.senderId !== user?.id) {
+        playNotificationSound();
+      }
       // Invalidate sidebar groups query to update lastMessage and reset unread
       queryClient.invalidateQueries({ queryKey: ["myGroupChats"] });
     }
