@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Coffee, BedDouble, Eye, Navigation2, Gem, Tent, UtensilsCrossed,
   Globe, Loader2, ChevronLeft, ChevronRight, CheckCircle2,
-  Camera, Image as ImageIcon, Star,
+  Camera, Image as ImageIcon, Star, Sparkles,
 } from 'lucide-react';
 import { uploadImage } from '@/lib/upload';
 
@@ -17,6 +17,7 @@ export const CATEGORIES = [
   { id: 'hidden',    label: 'Hidden Gem', Icon: Gem,             color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.30)' },
   { id: 'camping',   label: 'Camping',    Icon: Tent,            color: '#4ADE80', bg: 'rgba(74,222,128,0.12)',  border: 'rgba(74,222,128,0.30)' },
   { id: 'food',      label: 'Food Spot',  Icon: UtensilsCrossed, color: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.30)' },
+  { id: 'other',     label: 'Other',      Icon: Sparkles,        color: '#38BDF8', bg: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,0.30)' },
 ];
 
 export const getCat = (id: string) => CATEGORIES.find(c => c.id === id) ?? CATEGORIES[0];
@@ -54,6 +55,7 @@ const CAT_DESCRIPTIONS: Record<string, string> = {
   hidden:    'Off-the-map finds',
   camping:   'Camp sites',
   food:      'Dhabas & eateries',
+  other:     'Unique stops & more',
 };
 
 // ─── 5-Star Rating Component ──────────────────────────────────────────────────
