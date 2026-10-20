@@ -34,8 +34,10 @@ import {
   ChevronRight, Bell, Shield, LogOut, User, Bike, Mountain,
   Globe, Phone, Mail, Lock, Trash2, ExternalLink,
   CheckCircle2, MoreHorizontal, MessageSquare, Plus, PenLine,
-  ImagePlus, Hash, Navigation2, Eye, EyeOff, AlertTriangle, Grid3x3, Loader2, Star
+  ImagePlus, Hash, Navigation2, Eye, EyeOff, AlertTriangle, Grid3x3, Loader2, Star,
+  FileText, Scale
 } from 'lucide-react';
+import { TermsModal } from '@/components/TermsModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -557,6 +559,7 @@ function SettingsSheet({
   savingPrivacy: boolean;
 }) {
   const { logout } = useAuth();
+  const [showTerms, setShowTerms] = useState(false);
 
   const SettingRow = ({ icon: Icon, label, sublabel, onClick, danger = false, iconColor = '' }: {
     icon: any; label: string; sublabel?: string; onClick?: () => void; danger?: boolean; iconColor?: string;
@@ -577,88 +580,93 @@ function SettingsSheet({
   );
 
   return (
-    <SideSheet onClose={onClose} title="Settings">
-      <div className="py-4">
-        {/* Account info summary */}
-        <div className="px-6 pb-4 mb-2">
-          <div className="p-4 bg-white/4 border border-white/8 rounded-2xl flex items-center gap-4">
-            <Avatar className="h-12 w-12 border-2 border-primary/20">
-              <AvatarImage src={profile.avatarUrl || ''} className="object-cover" />
-              <AvatarFallback className="bg-primary/20 text-primary font-black">{profile.name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-black text-sm">{profile.name}</p>
-              <p className="text-xs text-muted-foreground">{profile.email}</p>
+    <>
+      <SideSheet onClose={onClose} title="Settings">
+        <div className="py-4">
+          {/* Account info summary */}
+          <div className="px-6 pb-4 mb-2">
+            <div className="p-4 bg-white/4 border border-white/8 rounded-2xl flex items-center gap-4">
+              <Avatar className="h-12 w-12 border-2 border-primary/20">
+                <AvatarImage src={profile.avatarUrl || ''} className="object-cover" />
+                <AvatarFallback className="bg-primary/20 text-primary font-black">{profile.name?.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-black text-sm">{profile.name}</p>
+                <p className="text-xs text-muted-foreground">{profile.email}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="px-6 py-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Account</p>
-        </div>
-        <SettingRow icon={User} label="Personal Information" sublabel="Name, email, phone" iconColor="text-blue-400" />
-        <SettingRow icon={Lock} label="Change Password" sublabel="Update your login password" iconColor="text-amber-400" />
-        <SettingRow icon={Phone} label="Phone Number" sublabel={profile.phone || 'Not added'} iconColor="text-green-400" />
-        <SettingRow icon={Mail} label="Email Address" sublabel={profile.email} iconColor="text-purple-400" />
+          <div className="px-6 py-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Account</p>
+          </div>
+          <SettingRow icon={User} label="Personal Information" sublabel="Name, email, phone" iconColor="text-blue-400" />
+          <SettingRow icon={Lock} label="Change Password" sublabel="Update your login password" iconColor="text-amber-400" />
+          <SettingRow icon={Phone} label="Phone Number" sublabel={profile.phone || 'Not added'} iconColor="text-green-400" />
+          <SettingRow icon={Mail} label="Email Address" sublabel={profile.email} iconColor="text-purple-400" />
 
-        <div className="px-6 pt-4 pb-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Privacy & Safety</p>
-        </div>
-        {/* Hide / Unhide Profile Details Toggle */}
-        <div className="px-6 py-3.5 flex items-center justify-between hover:bg-white/4 transition-colors">
-          <div className="flex items-center gap-4">
-            <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                profile.hideProfileDetails ? 'bg-amber-400/10' : 'bg-emerald-400/10'
+          <div className="px-6 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Privacy & Safety</p>
+          </div>
+          {/* Hide / Unhide Profile Details Toggle */}
+          <div className="px-6 py-3.5 flex items-center justify-between hover:bg-white/4 transition-colors">
+            <div className="flex items-center gap-4">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  profile.hideProfileDetails ? 'bg-amber-400/10' : 'bg-emerald-400/10'
+                }`}
+              >
+                {profile.hideProfileDetails ? (
+                  <EyeOff size={17} className="text-amber-400" />
+                ) : (
+                  <Eye size={17} className="text-emerald-400" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Hide Profile Details</p>
+                <p className="text-xs text-muted-foreground mt-0.5 max-w-[220px]">
+                  {profile.hideProfileDetails
+                    ? 'Only name, cover, and profile photo are visible'
+                    : 'All profile details and ride info are visible'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onToggleHide}
+              disabled={savingPrivacy}
+              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0 ${
+                profile.hideProfileDetails ? 'bg-primary' : 'bg-white/20'
               }`}
+              title="Toggle hide profile details"
             >
-              {profile.hideProfileDetails ? (
-                <EyeOff size={17} className="text-amber-400" />
-              ) : (
-                <Eye size={17} className="text-emerald-400" />
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">Hide Profile Details</p>
-              <p className="text-xs text-muted-foreground mt-0.5 max-w-[220px]">
-                {profile.hideProfileDetails
-                  ? 'Only name, cover, and profile photo are visible'
-                  : 'All profile details and ride info are visible'}
-              </p>
-            </div>
+              <div
+                className={`w-5 h-5 rounded-full bg-black transition-transform ${
+                  profile.hideProfileDetails ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
-          <button
-            onClick={onToggleHide}
-            disabled={savingPrivacy}
-            className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0 ${
-              profile.hideProfileDetails ? 'bg-primary' : 'bg-white/20'
-            }`}
-            title="Toggle hide profile details"
-          >
-            <div
-              className={`w-5 h-5 rounded-full bg-black transition-transform ${
-                profile.hideProfileDetails ? 'translate-x-6' : 'translate-x-0'
-              }`}
-            />
-          </button>
-        </div>
-        <SettingRow icon={Bell} label="Notifications" sublabel="Rides, matches, messages" iconColor="text-primary" />
-        <SettingRow icon={Globe} label="Location Access" sublabel="Used for ride matching" iconColor="text-sky-400" />
+          <SettingRow icon={Bell} label="Notifications" sublabel="Rides, matches, messages" iconColor="text-primary" />
+          <SettingRow icon={Globe} label="Location Access" sublabel="Used for ride matching" iconColor="text-sky-400" />
 
-        <div className="px-6 pt-4 pb-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Support</p>
-        </div>
-        <SettingRow icon={ExternalLink} label="Help & FAQ" sublabel="MotoHippi@yahoo.com" iconColor="text-muted-foreground" onClick={() => window.open('mailto:MotoHippi@yahoo.com')} />
+          <div className="px-6 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Support</p>
+          </div>
+          <SettingRow icon={ExternalLink} label="Help & FAQ" sublabel="MotoHippi@yahoo.com" iconColor="text-muted-foreground" onClick={() => window.open('mailto:MotoHippi@yahoo.com')} />
+          <SettingRow icon={FileText} label="Terms & Disclaimer" sublabel="Intermediary disclaimer & legal (Oct 2026)" iconColor="text-primary" onClick={() => setShowTerms(true)} />
 
-        <div className="px-6 pt-4 pb-2">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Danger Zone</p>
-        </div>
-        <SettingRow icon={LogOut} label="Log Out" onClick={logout} danger />
-        <SettingRow icon={Trash2} label="Delete Account" sublabel="Permanently remove your account" danger />
+          <div className="px-6 pt-4 pb-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Danger Zone</p>
+          </div>
+          <SettingRow icon={LogOut} label="Log Out" onClick={logout} danger />
+          <SettingRow icon={Trash2} label="Delete Account" sublabel="Permanently remove your account" danger />
 
-        <p className="text-center text-[10px] text-muted-foreground mt-8 pb-4">MotoHippi v1.0 · Built for riders, by riders 🏍️</p>
-      </div>
-    </SideSheet>
+          <p className="text-center text-[10px] text-muted-foreground mt-8 pb-4">MotoHippi v1.0 · Built for riders, by riders 🏍️</p>
+        </div>
+      </SideSheet>
+
+      <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} />
+    </>
   );
 }
 
