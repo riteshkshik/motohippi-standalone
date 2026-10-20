@@ -165,13 +165,6 @@ export default function Feed() {
               Stories
             </h1>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={handleSuggestClick}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-black text-[13px] font-black hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 cursor-pointer"
-          >
-            <Plus size={14} strokeWidth={3} /> Suggest
-          </motion.button>
         </div>
 
         {/* Category pills */}
