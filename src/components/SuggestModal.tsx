@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Coffee, BedDouble, Eye, Navigation2, Gem, Tent, UtensilsCrossed,
@@ -185,7 +186,7 @@ export function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCr
     }
   };
 
-  return (
+  const modalContent = (
     <>
       <motion.div
         initial={{ opacity: 0 }}
@@ -561,4 +562,7 @@ export function SuggestModal({ onClose, onCreated }: { onClose: () => void; onCr
       </motion.div>
     </>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }

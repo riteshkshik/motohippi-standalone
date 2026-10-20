@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useGetMyProfile, useUpdateMyProfile, useGetFeed, useDeletePost } from '@workspace/api-client-react';
 
 // authenticated fetch helper (mirrors how api-client-react works internally)
@@ -47,9 +48,9 @@ const INTERESTS_LIST = ['Mountains', 'Deserts', 'Coastal Roads', 'Forest Trails'
 
 // ─── tiny helpers ─────────────────────────────────────────────────────────
 function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
+  const content = (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -62,12 +63,14 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
       </motion.div>
     </motion.div>
   );
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
 }
 
 function SideSheet({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
-  return (
+  const content = (
     <motion.div
-      className="fixed inset-0 z-50 flex justify-end"
+      className="fixed inset-0 z-[70] flex justify-end"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -86,6 +89,8 @@ function SideSheet({ children, onClose, title }: { children: React.ReactNode; on
       </motion.div>
     </motion.div>
   );
+  if (typeof document === 'undefined') return null;
+  return createPortal(content, document.body);
 }
 
 // ─── Image Editor Modal ───────────────────────────────────────────────────
@@ -1115,9 +1120,9 @@ function PostsGrid({ profile }: { profile: any }) {
 
       {/* ── Lightbox ── */}
       <AnimatePresence>
-        {lightboxPost && (
+        {lightboxPost && typeof document !== 'undefined' && createPortal(
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setLightboxPost(null)} />
@@ -1218,7 +1223,8 @@ function PostsGrid({ profile }: { profile: any }) {
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
 
@@ -1253,9 +1259,9 @@ function PostsGrid({ profile }: { profile: any }) {
 
       {/* ── Delete Confirm ── */}
       <AnimatePresence>
-        {deleteTarget && (
+        {deleteTarget && typeof document !== 'undefined' && createPortal(
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
@@ -1304,7 +1310,8 @@ function PostsGrid({ profile }: { profile: any }) {
                 </button>
               </div>
             </motion.div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
     </div>
@@ -1361,9 +1368,9 @@ function EditPostModal({ post, onClose, onSaved }: { post: any; onClose: () => v
     }
   };
 
-  return (
+  const modalContent = (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
@@ -1479,6 +1486,9 @@ function EditPostModal({ post, onClose, onSaved }: { post: any; onClose: () => v
       </motion.div>
     </motion.div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }
 
 
