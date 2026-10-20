@@ -6,7 +6,6 @@ import {
   Home,
   Compass,
   Users,
-  Globe,
   ShoppingBag,
   Shield,
   MessageSquare,
@@ -133,7 +132,7 @@ const FindPartnerIcon = ({
 const NAV_ITEMS = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/discover", icon: Compass, label: "Meet" },
-  { href: "/feed", icon: Globe, label: "Stories" },
+  { href: "/feed", icon: Users, label: "Stories" },
   { href: "/marketplace", icon: ShoppingBag, label: "Shop", upcoming: true },
   { href: "/insurance", icon: Shield, label: "Insurance", cashback: true },
   { href: "/messages", icon: MessageSquare, label: "Messages" },
@@ -145,7 +144,7 @@ const MOBILE_MAIN = [
   { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/discover", icon: Compass, label: "Find" },
   { href: "/insurance", icon: Shield, label: "Insurance" },
-  { href: "/feed", icon: Globe, label: "Stories" },
+  { href: "/feed", icon: Users, label: "Stories" },
 ];
 
 // ─── Valid App Routes that should display the sidebar navigation ─────────────

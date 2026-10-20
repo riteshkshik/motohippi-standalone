@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   MapPin,
   Plus,
-  Globe,
+  Users,
   Heart,
   MessageCircle,
   Share2,
@@ -159,7 +159,7 @@ export default function Feed() {
         <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3.5">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <Globe size={16} className="text-primary" />
+              <Users size={16} className="text-primary" />
             </div>
             <div>
               <h1 className="text-[17px] font-black text-white leading-none">
