@@ -199,11 +199,11 @@ export default function Feed() {
         </div>
       </div>
 
-      {/* ── Feed ── */}
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-28">
+      {/* ── Feed (Pinterest-style Masonry) ── */}
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-4 py-4 pb-28">
         {/* Guest invitation banner */}
         {!isLoggedIn && (
-          <div className="flex items-center justify-between p-4 rounded-3xl bg-gradient-to-r from-primary/15 via-white/5 to-transparent border border-primary/25 text-white shadow-lg">
+          <div className="mb-4 flex items-center justify-between p-4 rounded-3xl bg-gradient-to-r from-primary/15 via-white/5 to-transparent border border-primary/25 text-white shadow-lg">
             <div className="pr-3">
               <p className="text-sm font-black flex items-center gap-1.5 text-primary">
                 <Sparkles size={14} /> Welcome Rider!
@@ -229,7 +229,7 @@ export default function Feed() {
 
         {/* Deep link active banner */}
         {targetPostId && (
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-primary/10 border border-primary/30 text-white shadow-md">
+          <div className="mb-4 flex items-center justify-between p-3.5 rounded-2xl bg-primary/10 border border-primary/30 text-white shadow-md">
             <div className="flex items-center gap-2 min-w-0">
               <Sparkles size={16} className="text-primary shrink-0" />
               <div className="min-w-0">
@@ -251,7 +251,13 @@ export default function Feed() {
         )}
 
         {isLoading || (targetPostId && isLinkedLoading) ? (
-          [1, 2, 3].map((i) => <CardSkeleton key={i} />)
+          <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2.5 sm:gap-3.5">
+            {["h-52", "h-72", "h-44", "h-64", "h-56", "h-80", "h-48", "h-60"].map(
+              (h, i) => (
+                <CardSkeleton key={i} heightClass={h} />
+              )
+            )}
+          </div>
         ) : displayedPosts.length === 0 ? (
           targetPostId ? (
             <div className="flex flex-col items-center justify-center py-16 text-center bg-card/20 rounded-3xl border border-white/6 p-6">
@@ -271,18 +277,20 @@ export default function Feed() {
             <Empty cat={activeCat} onSuggest={handleSuggestClick} />
           )
         ) : (
-          displayedPosts.map((post) => (
-            <PlaceCard
-              key={post.id}
-              post={post}
-              isHighlighted={post.id === targetPostId}
-              onComment={() => setCommentPost(post)}
-              onViewAuthor={(id) => setSelectedUserId(id)}
-              onRefresh={() =>
-                queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
-              }
-            />
-          ))
+          <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-2.5 sm:gap-3.5">
+            {displayedPosts.map((post) => (
+              <PlaceCard
+                key={post.id}
+                post={post}
+                isHighlighted={post.id === targetPostId}
+                onComment={() => setCommentPost(post)}
+                onViewAuthor={(id) => setSelectedUserId(id)}
+                onRefresh={() =>
+                  queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
+                }
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -365,7 +373,8 @@ function PlaceCard({
     .slice(1)
     .filter((h: string) => typeof h === "string" && !h.startsWith("rating:"));
 
-  const handleLike = async () => {
+  const handleLike = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const token =
       localStorage.getItem("motohippi_token") ||
       sessionStorage.getItem("motohippi_token");
@@ -391,7 +400,8 @@ function PlaceCard({
     onRefresh();
   };
 
-  const handleShare = async () => {
+  const handleShare = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const postUrl = `${window.location.origin}/feed?post=${post.id}`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -423,37 +433,205 @@ function PlaceCard({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-3xl overflow-hidden border bg-card/40 backdrop-blur-sm transition-all duration-300 ${
+      className={`break-inside-avoid mb-2.5 sm:mb-3.5 w-full inline-block rounded-2xl sm:rounded-3xl overflow-hidden border bg-[#111317] transition-all duration-300 group hover:border-white/25 hover:shadow-2xl hover:shadow-black/60 relative ${
         isHighlighted
           ? "border-primary ring-2 ring-primary/40 shadow-xl shadow-primary/20"
-          : "border-white/8"
+          : "border-white/10"
       }`}
     >
-      {/* Image section */}
-      {images.length > 0 && (
-        <div className="relative h-60 bg-black overflow-hidden">
+      {images.length > 0 ? (
+        /* ── Full-Bleed Image Card (Maximum Image Visibility / Zero Gray Area) ── */
+        <div
+          className="relative w-full overflow-hidden cursor-pointer bg-black/50"
+          onClick={onComment}
+        >
+          {/* Natural Height Image */}
           <AnimatePresence mode="wait">
             <motion.img
               key={imgIdx}
               src={images[imgIdx]}
-              alt={placeName}
-              className="w-full h-full object-cover"
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
+              alt={placeName || "MotoHippi story"}
+              loading="lazy"
+              className="w-full h-auto object-cover max-h-[500px] min-h-[170px] block transition-transform duration-500 group-hover:scale-[1.02]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.25 }}
             />
           </AnimatePresence>
 
-          {/* Bottom gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* ── Top Overlay (Directly On Top Of Image) ── */}
+          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/85 via-black/45 to-transparent p-2.5 sm:p-3 pb-8 pointer-events-none z-10">
+            {/* Badges Row */}
+            <div className="flex items-center justify-between gap-1.5 mb-1.5">
+              <div
+                className="pointer-events-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border backdrop-blur-md shadow-md"
+                style={{
+                  color: cat.color,
+                  background: cat.bg,
+                  borderColor: cat.border,
+                }}
+              >
+                <cat.Icon size={10} strokeWidth={2.5} />
+                <span>{cat.label}</span>
+              </div>
 
-          {/* Category badge & Rating badge */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+              {ratingVal && (
+                <div className="pointer-events-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-black/70 border border-[#FBBF24]/40 text-[#FBBF24] backdrop-blur-md shadow-md">
+                  <Star size={9} className="fill-[#FBBF24]" />
+                  <span>{ratingVal.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Place Title */}
+            {placeName ? (
+              <h3
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComment();
+                }}
+                className="pointer-events-auto text-white font-bold text-sm leading-snug line-clamp-1 drop-shadow-md hover:text-primary transition-colors cursor-pointer"
+                title={placeName}
+              >
+                {placeName}
+              </h3>
+            ) : null}
+
+            {/* City Location / Short Caption */}
+            {placeCity ? (
+              <div className="pointer-events-auto flex items-center gap-1 mt-0.5 text-[11px] text-white/85 drop-shadow">
+                <MapPin size={10} className="text-primary shrink-0" />
+                <span className="truncate">{placeCity}</span>
+              </div>
+            ) : post.content ? (
+              <p
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComment();
+                }}
+                className="pointer-events-auto text-white/80 text-[11px] leading-snug line-clamp-1 drop-shadow mt-0.5 cursor-pointer hover:text-white"
+              >
+                {post.content}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Multi-image navigation */}
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                disabled={imgIdx === 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImgIdx((i) => Math.max(0, i - 1));
+                }}
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white backdrop-blur-sm disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
+              >
+                <ChevronLeft size={13} />
+              </button>
+              <button
+                type="button"
+                disabled={imgIdx === images.length - 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImgIdx((i) => Math.min(images.length - 1, i + 1));
+                }}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white backdrop-blur-sm disabled:opacity-0 opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-20"
+              >
+                <ChevronRight size={13} />
+              </button>
+              <div className="absolute bottom-11 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+                {images.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1 rounded-full transition-all ${
+                      i === imgIdx ? "w-3 bg-primary" : "w-1 bg-white/50"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ── Bottom Overlay (Directly On Bottom Of Image) ── */}
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 pointer-events-none z-10 flex items-center justify-between">
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border backdrop-blur-md"
+              onClick={(e) => {
+                e.stopPropagation();
+                const authorId = post.author?.id || post.userId;
+                if (authorId) onViewAuthor(authorId);
+              }}
+              className="pointer-events-auto flex items-center gap-1.5 cursor-pointer group/author hover:opacity-95 transition-opacity min-w-0"
+              title="View rider profile"
+            >
+              <Avatar className="w-5 h-5 shrink-0 ring-1 ring-white/25 group-hover/author:ring-primary/60 transition-all">
+                <AvatarImage src={post.author?.avatarUrl} />
+                <AvatarFallback className="text-[9px] bg-primary/20 text-primary">
+                  {post.author?.name?.charAt(0) ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-white leading-none truncate drop-shadow group-hover/author:text-primary transition-colors">
+                  {post.author?.name?.split(" ")[0] || post.author?.name || "Rider"}
+                </p>
+                <p className="text-[9px] text-white/70 drop-shadow mt-0.5">
+                  {timeAgo(post.createdAt)}
+                </p>
+              </div>
+            </div>
+
+            <div className="pointer-events-auto flex items-center gap-1 shrink-0">
+              <motion.button
+                whileTap={{ scale: 0.82 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike(e);
+                }}
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold backdrop-blur-md transition-all ${
+                  liked
+                    ? "text-primary bg-primary/20 border border-primary/30"
+                    : "text-white/90 hover:text-white bg-black/40 hover:bg-black/60 border border-white/10"
+                }`}
+              >
+                <Heart size={13} className={liked ? "fill-primary" : ""} />
+                {likes > 0 && <span>{likes}</span>}
+              </motion.button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComment();
+                }}
+                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] text-white/90 hover:text-white font-bold bg-black/40 hover:bg-black/60 border border-white/10 backdrop-blur-md transition-colors cursor-pointer"
+              >
+                <MessageCircle size={13} />
+                {post.commentsCount > 0 && <span>{post.commentsCount}</span>}
+              </button>
+
+              <motion.button
+                whileTap={{ scale: 0.82 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare(e);
+                }}
+                className="p-1 rounded-md text-white/90 hover:text-white bg-black/40 hover:bg-black/60 border border-white/10 backdrop-blur-md transition-colors cursor-pointer"
+                title="Share post"
+              >
+                <Share2 size={13} />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* ── Text-only Fallback Card (when no photo exists) ── */
+        <div className="p-3.5 space-y-2 bg-[#111317]">
+          <div className="flex items-center justify-between gap-1.5 mb-1">
+            <div
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border"
               style={{
                 color: cat.color,
                 background: cat.bg,
@@ -461,201 +639,140 @@ function PlaceCard({
               }}
             >
               <cat.Icon size={10} strokeWidth={2.5} />
-              {cat.label}
+              <span>{cat.label}</span>
             </div>
-
             {ratingVal && (
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-black/60 border border-[#FBBF24]/40 text-[#FBBF24] backdrop-blur-md shadow-md">
-                <Star size={11} className="fill-[#FBBF24]" />
+              <div className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black bg-[#FBBF24]/15 border border-[#FBBF24]/30 text-[#FBBF24]">
+                <Star size={9} className="fill-[#FBBF24]" />
                 <span>{ratingVal.toFixed(1)}</span>
               </div>
             )}
           </div>
 
-          {/* Image navigation */}
-          {images.length > 1 && (
-            <>
-              <button
-                disabled={imgIdx === 0}
-                onClick={() => setImgIdx((i) => Math.max(0, i - 1))}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center backdrop-blur-sm disabled:opacity-20 transition-opacity"
-              >
-                <ChevronLeft size={15} />
-              </button>
-              <button
-                disabled={imgIdx === images.length - 1}
-                onClick={() =>
-                  setImgIdx((i) => Math.min(images.length - 1, i + 1))
-                }
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 border border-white/20 flex items-center justify-center backdrop-blur-sm disabled:opacity-20 transition-opacity"
-              >
-                <ChevronRight size={15} />
-              </button>
-              <div className="absolute bottom-[4.5rem] left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setImgIdx(i)}
-                    className={`h-1 rounded-full transition-all ${i === imgIdx ? "w-5 bg-primary" : "w-1 bg-white/40"}`}
-                  />
-                ))}
-              </div>
-            </>
+          {placeName && (
+            <h3
+              onClick={onComment}
+              className="text-white font-bold text-sm leading-snug line-clamp-1 cursor-pointer hover:text-primary transition-colors"
+            >
+              {placeName}
+            </h3>
           )}
 
-          {/* Place name overlay */}
-          {placeName && (
-            <div className="absolute bottom-4 left-4 right-4">
-              <h3 className="text-white font-black text-xl leading-tight drop-shadow-lg line-clamp-1">
-                {placeName}
-              </h3>
-              {placeCity && (
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin size={11} className="text-primary" />
-                  <span className="text-xs text-white/75 font-medium">
-                    {placeCity}
-                  </span>
-                </div>
-              )}
+          {placeCity && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <MapPin size={11} className="text-primary shrink-0" />
+              <span className="truncate">{placeCity}</span>
             </div>
           )}
+
+          {post.content && (
+            <p
+              onClick={onComment}
+              className="text-white/70 text-xs leading-relaxed line-clamp-3 cursor-pointer hover:text-white/90"
+            >
+              {post.content}
+            </p>
+          )}
+
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {tags.slice(0, 2).map((t: string) => (
+                <span
+                  key={t}
+                  className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-md border border-primary/15"
+                >
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Text card footer */}
+          <div className="pt-2 flex items-center justify-between border-t border-white/5">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                const authorId = post.author?.id || post.userId;
+                if (authorId) onViewAuthor(authorId);
+              }}
+              className="flex items-center gap-1.5 cursor-pointer group hover:opacity-90 transition-opacity min-w-0"
+            >
+              <Avatar className="w-5 h-5 shrink-0 ring-1 ring-white/10 group-hover:ring-primary/40 transition-all">
+                <AvatarImage src={post.author?.avatarUrl} />
+                <AvatarFallback className="text-[9px] bg-primary/20 text-primary">
+                  {post.author?.name?.charAt(0) ?? "?"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[11px] font-semibold text-white/85 truncate group-hover:text-primary">
+                {post.author?.name?.split(" ")[0] || post.author?.name || "Rider"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-0.5 shrink-0">
+              <motion.button
+                whileTap={{ scale: 0.82 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike(e);
+                }}
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  liked
+                    ? "text-primary bg-primary/12"
+                    : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                <Heart size={13} className={liked ? "fill-primary" : ""} />
+                {likes > 0 && <span>{likes}</span>}
+              </motion.button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComment();
+                }}
+                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] text-muted-foreground hover:text-white font-bold transition-colors"
+              >
+                <MessageCircle size={13} />
+                {post.commentsCount > 0 && <span>{post.commentsCount}</span>}
+              </button>
+              <motion.button
+                whileTap={{ scale: 0.82 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShare(e);
+                }}
+                className="p-1 rounded-md text-muted-foreground hover:text-white transition-colors cursor-pointer"
+              >
+                <Share2 size={13} />
+              </motion.button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Body */}
-      <div className="px-4 pt-4 pb-1">
-        {/* Place info (no-image fallback) */}
-        {images.length === 0 && (
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black border"
-                  style={{
-                    color: cat.color,
-                    background: cat.bg,
-                    borderColor: cat.border,
-                  }}
-                >
-                  <cat.Icon size={10} /> {cat.label}
-                </div>
-                {ratingVal && (
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FBBF24]/15 border border-[#FBBF24]/30 text-[#FBBF24]">
-                    <Star size={10} className="fill-[#FBBF24]" />
-                    <span>{ratingVal.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-              {placeName && (
-                <h3 className="text-white font-black text-lg leading-tight">
-                  {placeName}
-                </h3>
-              )}
-              {placeCity && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <MapPin size={11} className="text-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    {placeCity}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        {post.content && (
-          <p className="text-white/75 text-sm leading-relaxed mb-3 line-clamp-3">
-            {post.content}
-          </p>
-        )}
-
-        {/* Extra tags */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {tags.map((t: string) => (
-              <span
-                key={t}
-                className="text-[11px] text-primary/80 bg-primary/8 px-2 py-0.5 rounded-full border border-primary/15"
-              >
-                #{t}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-3 flex items-center justify-between border-t border-white/5">
-        <div
-          onClick={() => {
-            const authorId = post.author?.id || post.userId;
-            if (authorId) onViewAuthor(authorId);
-          }}
-          className="flex items-center gap-2 cursor-pointer group hover:opacity-90 transition-opacity"
-          title="View rider profile"
-        >
-          <Avatar className="w-7 h-7 ring-1 ring-white/10 group-hover:ring-primary/40 transition-all">
-            <AvatarImage src={post.author?.avatarUrl} />
-            <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-              {post.author?.name?.charAt(0) ?? "?"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-xs font-bold text-white/90 leading-none group-hover:text-primary transition-colors">
-              {post.author?.name}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {timeAgo(post.createdAt)}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-0.5">
-          <motion.button
-            whileTap={{ scale: 0.82 }}
-            onClick={handleLike}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-              liked
-                ? "text-primary bg-primary/12"
-                : "text-muted-foreground hover:text-white"
-            }`}
-          >
-            <Heart size={14} className={liked ? "fill-primary" : ""} />
-            {likes > 0 && <span>{likes}</span>}
-          </motion.button>
-
-          <button
-            onClick={onComment}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:text-white font-bold transition-colors"
-          >
-            <MessageCircle size={14} />
-            {post.commentsCount > 0 && <span>{post.commentsCount}</span>}
-          </button>
-
-          <motion.button
-            whileTap={{ scale: 0.82 }}
-            onClick={handleShare}
-            className="p-1.5 rounded-full text-muted-foreground hover:text-white transition-colors cursor-pointer"
-            title="Share post"
-          >
-            <Share2 size={14} />
-          </motion.button>
-        </div>
-      </div>
     </motion.article>
   );
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
-function CardSkeleton() {
+function CardSkeleton({ heightClass = "h-64" }: { heightClass?: string }) {
   return (
-    <div className="rounded-3xl overflow-hidden border border-white/8 bg-card/40">
-      <Skeleton className="w-full h-56 rounded-none" />
-      <div className="px-4 py-4 space-y-2.5">
-        <Skeleton className="h-3.5 w-1/3 rounded-full" />
-        <Skeleton className="h-3 w-full rounded-full" />
-        <Skeleton className="h-3 w-2/3 rounded-full" />
+    <div className="break-inside-avoid mb-2.5 sm:mb-3.5 w-full inline-block rounded-2xl sm:rounded-3xl overflow-hidden border border-white/8 bg-[#111317] relative">
+      <Skeleton className={`w-full ${heightClass} rounded-none`} />
+      {/* Top overlay skeleton */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 space-y-2 pointer-events-none">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-16 rounded-full bg-white/10" />
+          <Skeleton className="h-4 w-10 rounded-full bg-white/10" />
+        </div>
+        <Skeleton className="h-4 w-3/4 rounded-full bg-white/10" />
+        <Skeleton className="h-3 w-1/2 rounded-full bg-white/10" />
+      </div>
+      {/* Bottom overlay skeleton */}
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-1.5">
+          <Skeleton className="h-5 w-5 rounded-full bg-white/10" />
+          <Skeleton className="h-2.5 w-14 rounded-full bg-white/10" />
+        </div>
+        <Skeleton className="h-4 w-16 rounded-full bg-white/10" />
       </div>
     </div>
   );
