@@ -161,14 +161,9 @@ export default function Feed() {
             <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
               <Users size={16} className="text-primary" />
             </div>
-            <div>
-              <h1 className="text-[17px] font-black text-white leading-none">
-                Stories
-              </h1>
-              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
-                Explore · Suggest · Discover
-              </p>
-            </div>
+            <h1 className="text-[17px] font-black text-white leading-none">
+              Stories
+            </h1>
           </div>
           <motion.button
             whileTap={{ scale: 0.94 }}
