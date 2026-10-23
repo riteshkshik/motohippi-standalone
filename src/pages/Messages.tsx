@@ -26,6 +26,7 @@ import {
   Crown,
   MapPin,
   UserPlus,
+  ChevronRight,
 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,6 +79,7 @@ function PendingRequestsBanner({
   const { toast } = useToast();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<{
     requester: RequesterUser;
     requestId: number;
@@ -120,13 +122,20 @@ function PendingRequestsBanner({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to accept");
 
-      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      setRequests((prev) => {
+        const next = prev.filter((r) => r.id !== reqId);
+        if (next.length === 0) {
+          setIsModalOpen(false);
+        }
+        return next;
+      });
       toast({
         title: "🎉 Match Accepted!",
         description: `You matched with ${data.requester?.name || "this rider"}! Start chatting now.`,
       });
 
       if (data.conversationId) {
+        setIsModalOpen(false);
         onAccept(data.conversationId);
       }
     } catch (err: any) {
@@ -145,7 +154,13 @@ function PendingRequestsBanner({
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
       });
-      setRequests((prev) => prev.filter((r) => r.id !== reqId));
+      setRequests((prev) => {
+        const next = prev.filter((r) => r.id !== reqId);
+        if (next.length === 0) {
+          setIsModalOpen(false);
+        }
+        return next;
+      });
       toast({
         title: "Request Declined",
         description: "Match request was removed.",
@@ -157,77 +172,168 @@ function PendingRequestsBanner({
 
   if (loading || !requests.length) return null;
 
-  return (
-    <div className="p-3 border-b border-primary/20 bg-primary/5 space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-black uppercase tracking-wider text-primary flex items-center gap-1.5">
-          <Sparkles size={12} /> Hippi Requests ({requests.length})
-        </p>
-      </div>
+  const firstReq = requests[0];
 
-      <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
-        {requests.map((req) => (
-          <motion.div
-            key={req.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-card/90 border border-white/10 rounded-2xl space-y-2.5 shadow-lg"
-          >
-            <div
-              onClick={() =>
-                setSelectedProfile({
-                  requester: req.requester,
-                  requestId: req.id,
-                })
-              }
-              className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              <Avatar className="h-10 w-10 border border-primary/40 shrink-0">
-                <AvatarImage src={req.requester?.avatarUrl ?? ""} />
-                <AvatarFallback>
-                  {req.requester?.name?.charAt(0) ?? "R"}
+  return (
+    <>
+      {/* ── Compact Space-Saving Request Card in Sidebar ── */}
+      <div className="p-2 border-b border-primary/20 bg-primary/5">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="w-full text-left p-2.5 rounded-2xl bg-card/85 hover:bg-card border border-primary/25 hover:border-primary/50 transition-all flex items-center justify-between gap-3 shadow-md group"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Requester Avatar thumbnail with neon glow badge */}
+            <div className="relative shrink-0">
+              <Avatar className="h-9 w-9 border border-primary/50 shadow-sm">
+                <AvatarImage src={firstReq.requester?.avatarUrl ?? ""} />
+                <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
+                  {firstReq.requester?.name?.charAt(0) ?? "R"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white leading-tight truncate">
-                  <span className="text-primary hover:underline">
-                    {req.requester?.name}
-                  </span>{" "}
-                  liked your profile!
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  🏍️ {req.requester?.vehicleType || "Motorcycle rider"} •{" "}
-                  {req.requester?.city || "India"}
-                </p>
-              </div>
+              <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-primary text-black flex items-center justify-center text-[9px] font-black shadow">
+                <Sparkles size={9} />
+              </span>
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAccept(req.id);
-                }}
-                size="sm"
-                className="flex-1 h-8 bg-primary text-black font-black text-xs hover:bg-primary/90 rounded-xl"
-              >
-                <Check size={13} className="mr-1" /> Accept Request
-              </Button>
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDecline(req.id);
-                }}
-                size="sm"
-                variant="outline"
-                className="flex-1 h-8 border-white/10 text-muted-foreground text-xs hover:border-red-500/30 hover:text-red-400 rounded-xl"
-              >
-                <X size={13} className="mr-1" /> Decline
-              </Button>
+            {/* Info text */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-black text-white group-hover:text-primary transition-colors tracking-tight">
+                  Hippi Requests
+                </p>
+                <span className="px-1.5 py-0.2 rounded-full bg-primary text-black text-[10px] font-black leading-tight">
+                  {requests.length}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate">
+                <span className="text-primary font-semibold">
+                  {firstReq.requester?.name || "Someone"}
+                </span>{" "}
+                liked your profile!
+              </p>
             </div>
-          </motion.div>
-        ))}
+          </div>
+
+          {/* Action indicator */}
+          <div className="flex items-center gap-1 shrink-0 text-primary group-hover:translate-x-0.5 transition-transform">
+            <span className="text-[11px] font-bold hidden sm:inline">View</span>
+            <ChevronRight size={16} />
+          </div>
+        </button>
       </div>
+
+      {/* ── Full Requests Modal / Popup on Card Click ── */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div
+            onClick={() => setIsModalOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all"
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md bg-[#12141a] border border-white/15 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      Hippi Requests
+                      <span className="px-2 py-0.5 rounded-full bg-primary text-black text-xs font-black">
+                        {requests.length}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Riders who want to connect with you
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Requests list inside modal */}
+              <div className="p-4 space-y-3 overflow-y-auto no-scrollbar flex-1 max-h-[60vh]">
+                {requests.map((req) => (
+                  <motion.div
+                    key={req.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3.5 bg-card/90 border border-white/10 rounded-2xl space-y-3 shadow-lg hover:border-primary/30 transition-colors"
+                  >
+                    <div
+                      onClick={() =>
+                        setSelectedProfile({
+                          requester: req.requester,
+                          requestId: req.id,
+                        })
+                      }
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      <Avatar className="h-11 w-11 border border-primary/40 shrink-0">
+                        <AvatarImage src={req.requester?.avatarUrl ?? ""} />
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                          {req.requester?.name?.charAt(0) ?? "R"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white leading-tight truncate">
+                          <span className="text-primary hover:underline">
+                            {req.requester?.name}
+                          </span>{" "}
+                          liked your profile!
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          🏍️ {req.requester?.vehicleType || "Motorcycle rider"} •{" "}
+                          {req.requester?.city || "India"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2.5">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAccept(req.id);
+                        }}
+                        size="sm"
+                        className="flex-1 h-9 bg-primary text-black font-black text-xs hover:bg-primary/90 rounded-xl shadow-md"
+                      >
+                        <Check size={14} className="mr-1.5" /> Accept Request
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDecline(req.id);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-9 border-white/10 text-muted-foreground text-xs hover:border-red-500/30 hover:text-red-400 rounded-xl"
+                      >
+                        <X size={14} className="mr-1.5" /> Decline
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Rider Profile Preview Modal */}
       <RequesterProfileModal
@@ -237,7 +343,7 @@ function PendingRequestsBanner({
         onAccept={handleAccept}
         onDecline={handleDecline}
       />
-    </div>
+    </>
   );
 }
 
