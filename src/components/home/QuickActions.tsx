@@ -41,9 +41,9 @@ const QUICK_ACTIONS: QuickActionItem[] = [
 
 export function QuickActions() {
   return (
-    <section className="relative z-20 -mt-12 sm:-mt-20 md:-mt-28 lg:-mt-32 px-2 sm:px-4 md:px-6">
-      {/* 3-Column Card Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+    <section className="relative z-20 w-full max-w-5xl mx-auto px-2 sm:px-4">
+      {/* Vertical Stack of 3 Cards */}
+      <div className="flex flex-col gap-4 sm:gap-6">
         {QUICK_ACTIONS.map((action, idx) => {
           const Icon = action.icon;
           return (
@@ -52,9 +52,10 @@ export function QuickActions() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: idx * 0.1 }}
+              className="w-full"
             >
-              <Link href={action.href} className="group block h-full focus:outline-none">
-                <div className="relative overflow-hidden rounded-[26px] border border-white/15 group-hover:border-[#D6FF2F]/50 transition-all duration-300 shadow-[0_16px_40px_rgba(0,0,0,0.6)] group-hover:shadow-[0_20px_48px_rgba(0,0,0,0.85)] h-[320px] sm:h-[350px] md:h-[370px] flex flex-col justify-between p-5">
+              <Link href={action.href} className="group block w-full focus:outline-none">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-black/15 dark:border-white/15 group-hover:border-[#D6FF2F]/70 transition-all duration-300 shadow-[0_12px_32px_rgba(0,0,0,0.35)] group-hover:shadow-[0_18px_44px_rgba(0,0,0,0.5)] h-[180px] sm:h-[220px] md:h-[250px] flex flex-col justify-between p-4 sm:p-6 bg-[#101214]">
                   {/* Full-bleed Background Image */}
                   <img
                     src={action.image}
@@ -63,29 +64,29 @@ export function QuickActions() {
                     loading="lazy"
                   />
 
-                  {/* Minimal Bottom Gradient solely for text legibility (top 60% remains pure image) */}
-                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
+                  {/* Gradient overlay for clear text readability across the wide card */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/20 pointer-events-none" />
 
                   {/* Top-Left: Floating Glassmorphic Icon Badge */}
                   <div className="relative z-10 self-start">
-                    <div className="w-11 h-11 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center text-[#D6FF2F] shadow-lg group-hover:border-[#D6FF2F]/50 group-hover:bg-black/60 transition-all duration-300">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center text-[#D6FF2F] shadow-lg group-hover:border-[#D6FF2F]/60 group-hover:bg-black/70 transition-all duration-300">
                       <Icon size={22} strokeWidth={2.2} className="drop-shadow-[0_0_6px_rgba(214,255,47,0.4)]" />
                     </div>
                   </div>
 
                   {/* Bottom Content: Title, Subtitle & Arrow Button */}
-                  <div className="relative z-10 mt-auto pt-4 flex items-end justify-between gap-3">
+                  <div className="relative z-10 mt-auto pt-2 flex items-end justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold text-white group-hover:text-[#D6FF2F] transition-colors leading-snug drop-shadow-md line-clamp-2">
+                      <h3 className="text-lg sm:text-2xl font-black text-white group-hover:text-[#D6FF2F] transition-colors leading-tight drop-shadow-md">
                         {action.title}
                       </h3>
-                      <p className="mt-1 text-xs sm:text-sm text-white/70 group-hover:text-white/95 transition-colors leading-relaxed line-clamp-1 drop-shadow">
+                      <p className="mt-1 text-xs sm:text-sm text-white/80 group-hover:text-white transition-colors leading-relaxed line-clamp-1 drop-shadow">
                         {action.subtitle}
                       </p>
                     </div>
 
                     {/* Arrow Button */}
-                    <div className="shrink-0 w-10 h-10 rounded-full border border-white/20 bg-black/40 backdrop-blur-md flex items-center justify-center text-white/90 group-hover:border-[#D6FF2F] group-hover:bg-[#D6FF2F] group-hover:text-black transition-all duration-300 shadow-md">
+                    <div className="shrink-0 w-9 h-9 sm:w-11 sm:h-11 rounded-full border border-white/20 bg-black/50 backdrop-blur-md flex items-center justify-center text-white/90 group-hover:border-[#D6FF2F] group-hover:bg-[#D6FF2F] group-hover:text-black transition-all duration-300 shadow-md">
                       <ArrowRight
                         size={18}
                         strokeWidth={2.2}
