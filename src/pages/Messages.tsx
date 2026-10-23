@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   useGetConversations,
   useListMessages,
@@ -109,7 +109,8 @@ function PendingRequestsBanner({
       fetchPending();
     };
     window.addEventListener("motohippi_match_request", handleMatchEvent);
-    return () => window.removeEventListener("motohippi_match_request", handleMatchEvent);
+    return () =>
+      window.removeEventListener("motohippi_match_request", handleMatchEvent);
   }, []);
 
   const handleAccept = async (reqId: number) => {
@@ -298,8 +299,8 @@ function PendingRequestsBanner({
                           liked your profile!
                         </p>
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          🏍️ {req.requester?.vehicleType || "Motorcycle rider"} •{" "}
-                          {req.requester?.city || "India"}
+                          🏍️ {req.requester?.vehicleType || "Motorcycle rider"}{" "}
+                          • {req.requester?.city || "India"}
                         </p>
                       </div>
                     </div>
@@ -533,7 +534,10 @@ export default function Messages() {
 
     return () => {
       window.removeEventListener("motohippi_new_message", handleLiveRefresh);
-      window.removeEventListener("motohippi_new_group_message", handleLiveRefresh);
+      window.removeEventListener(
+        "motohippi_new_group_message",
+        handleLiveRefresh,
+      );
       window.removeEventListener("motohippi_match_request", handleLiveRefresh);
     };
   }, [refetchConvs, refetchGroups]);
@@ -1597,19 +1601,42 @@ function GroupChatView({
   });
 
   // 3. Handle incoming group WebSocket message
-  const handleNewGroupMessage = (msg: GroupChatMessage) => {
-    if (msg.groupId === groupId) {
-      setMessagesList((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-      if (msg.senderId !== user?.id) {
-        playNotificationSound();
+  const handleNewGroupMessage = useCallback(
+    (msg: GroupChatMessage) => {
+      if (Number(msg.groupId) === Number(groupId)) {
+        setMessagesList((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+        if (msg.senderId !== user?.id) {
+          playNotificationSound();
+        }
+        // Invalidate sidebar groups query to update lastMessage and reset unread
+        queryClient.invalidateQueries({ queryKey: ["myGroupChats"] });
       }
-      // Invalidate sidebar groups query to update lastMessage and reset unread
-      queryClient.invalidateQueries({ queryKey: ["myGroupChats"] });
-    }
-  };
+    },
+    [groupId, user?.id, queryClient],
+  );
+
+  // Listen to global window event dispatched by any active socket in the app
+  useEffect(() => {
+    const handleGlobalGroupMsg = (e: any) => {
+      const msg = e.detail;
+      if (msg) {
+        handleNewGroupMessage(msg);
+      }
+    };
+    window.addEventListener(
+      "motohippi_new_group_message",
+      handleGlobalGroupMsg,
+    );
+    return () => {
+      window.removeEventListener(
+        "motohippi_new_group_message",
+        handleGlobalGroupMsg,
+      );
+    };
+  }, [handleNewGroupMessage]);
 
   const { isConnected, sendGroupMessage } = useWebSocketChat(
     token,
@@ -1745,14 +1772,28 @@ function GroupChatView({
         credentials: "include",
         body: JSON.stringify({ content: cleanText, messageType: "text" }),
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Failed to send message");
+          return data;
+        })
         .then((data) => {
           if (data && data.id) {
-            setMessagesList((prev) => [...prev, data]);
+            setMessagesList((prev) => {
+              if (prev.some((m) => m.id === data.id)) return prev;
+              return [...prev, data];
+            });
             queryClient.invalidateQueries({ queryKey: ["myGroupChats"] });
           }
         })
-        .catch(() => {});
+        .catch((err: any) => {
+          toast({
+            title: "Could not send message",
+            description:
+              err?.message || "Please check your network connection.",
+            variant: "destructive",
+          });
+        });
     }
     setText("");
   };
