@@ -48,6 +48,7 @@ import {
   SuggestModal,
 } from "@/components/SuggestModal";
 import { UserProfileModal } from "@/components/UserProfileModal";
+import { PostLikesModal } from "@/components/PostLikesModal";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getToken = () => localStorage.getItem("motohippi_token") || "";
@@ -88,6 +89,7 @@ export default function Feed() {
   const [showSuggest, setShowSuggest] = useState(false);
   const [commentPost, setCommentPost] = useState<any>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [likesPost, setLikesPost] = useState<any>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -284,6 +286,7 @@ export default function Feed() {
                 post={post}
                 isHighlighted={post.id === targetPostId}
                 onComment={() => setCommentPost(post)}
+                onShowLikes={() => setLikesPost(post)}
                 onViewAuthor={(id) => setSelectedUserId(id)}
                 onRefresh={() =>
                   queryClient.invalidateQueries({ queryKey: ["/api/feed"] })
@@ -336,6 +339,19 @@ export default function Feed() {
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {likesPost && (
+          <PostLikesModal
+            post={likesPost}
+            onClose={() => setLikesPost(null)}
+            onViewAuthor={(id) => {
+              setLikesPost(null);
+              setSelectedUserId(id);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -344,12 +360,14 @@ export default function Feed() {
 function PlaceCard({
   post,
   onComment,
+  onShowLikes,
   onRefresh,
   onViewAuthor,
   isHighlighted = false,
 }: {
   post: any;
   onComment: () => void;
+  onShowLikes: () => void;
   onRefresh: () => void;
   onViewAuthor: (userId: number) => void;
   isHighlighted?: boolean;
@@ -359,6 +377,52 @@ function PlaceCard({
   const [liking, setLiking] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
   const { toast } = useToast();
+
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressRef = useRef(false);
+  const pointerStartPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    isLongPressRef.current = false;
+    pointerStartPosRef.current = { x: e.clientX, y: e.clientY };
+
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+      onShowLikes();
+    }, 450);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerStartPosRef.current) return;
+    const dx = Math.abs(e.clientX - pointerStartPosRef.current.x);
+    const dy = Math.abs(e.clientY - pointerStartPosRef.current.y);
+    if (dx > 8 || dy > 8) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isLongPressRef.current) {
+      isLongPressRef.current = false;
+      return;
+    }
+    handleLike(e);
+  };
 
   const images = decodeImgs(post.imageUrl);
   const placeName = decodeName(post.location);
@@ -587,15 +651,18 @@ function PlaceCard({
             <div className="pointer-events-auto flex items-center gap-1 shrink-0">
               <motion.button
                 whileTap={{ scale: 0.82 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLike(e);
-                }}
-                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold backdrop-blur-md transition-all ${
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={handleLikeClick}
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold backdrop-blur-md transition-all select-none cursor-pointer ${
                   liked
                     ? "text-primary bg-primary/20 border border-primary/30"
                     : "text-white/90 hover:text-white bg-black/40 hover:bg-black/60 border border-white/10"
                 }`}
+                title="Tap to like, hold to see who liked"
               >
                 <Heart size={13} className={liked ? "fill-primary" : ""} />
                 {likes > 0 && <span>{likes}</span>}
@@ -711,15 +778,18 @@ function PlaceCard({
             <div className="flex items-center gap-0.5 shrink-0">
               <motion.button
                 whileTap={{ scale: 0.82 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLike(e);
-                }}
-                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={handleLikeClick}
+                className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-bold transition-all select-none cursor-pointer ${
                   liked
                     ? "text-primary bg-primary/12"
                     : "text-muted-foreground hover:text-white"
                 }`}
+                title="Tap to like, hold to see who liked"
               >
                 <Heart size={13} className={liked ? "fill-primary" : ""} />
                 {likes > 0 && <span>{likes}</span>}

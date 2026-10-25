@@ -52,6 +52,7 @@ import {
   FileText, Scale
 } from 'lucide-react';
 import { TermsModal } from '@/components/TermsModal';
+import { PostLikesModal } from '@/components/PostLikesModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -989,6 +990,7 @@ function PostsGrid({ profile }: { profile: any }) {
   const [lightboxPost, setLightboxPost] = useState<any>(null);
   const [editPost, setEditPost] = useState<any>(null);
   const [confirmDeletePost, setConfirmDeletePost] = useState<any>(null);
+  const [likesPost, setLikesPost] = useState<any>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const fallbackImages: string[] = [
@@ -1241,7 +1243,11 @@ function PostsGrid({ profile }: { profile: any }) {
 
                 {/* Stats bar */}
                 <div className="px-5 py-3.5 border-t border-white/8 flex items-center gap-5 shrink-0">
-                  <div className="flex items-center gap-1.5 text-sm">
+                  <div
+                    onClick={() => setLikesPost(lightboxPost)}
+                    className="flex items-center gap-1.5 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                    title="View riders who liked this post"
+                  >
                     <Heart size={16} className={lightboxPost.isLiked ? 'fill-red-400 text-red-400' : 'text-muted-foreground'} />
                     <span className="font-bold text-white">{lightboxPost.likesCount ?? 0}</span>
                     <span className="text-muted-foreground text-xs">likes</span>
@@ -1306,6 +1312,19 @@ function PostsGrid({ profile }: { profile: any }) {
               if (lightboxPost?.id === targetId) {
                 setLightboxPost(null);
               }
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Post Likes Modal ── */}
+      <AnimatePresence>
+        {likesPost && (
+          <PostLikesModal
+            post={likesPost}
+            onClose={() => setLikesPost(null)}
+            onViewAuthor={() => {
+              setLikesPost(null);
             }}
           />
         )}
