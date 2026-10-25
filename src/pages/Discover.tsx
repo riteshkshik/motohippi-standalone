@@ -1928,7 +1928,7 @@ export default function Discover() {
   );
 
   return (
-    <div className="min-h-screen bg-[#FFDB58] flex relative">
+    <div className="min-h-screen bg-[#FFDB58] flex flex-col relative overflow-hidden">
       {/* ─── Match Overlay ─── */}
       <AnimatePresence>
         {matchData && (
@@ -2060,191 +2060,194 @@ export default function Discover() {
         )}
       </AnimatePresence>
 
-      {/* ─── LEFT SIDEBAR (320px, desktop) ─── */}
-      <aside
-        className="hidden lg:flex flex-col shrink-0 border-r border-white/5 p-4"
-        style={{ width: 320 }}
-      >
-        <div className="rounded-2xl bg-card/60 backdrop-blur-xl border border-white/8 p-4 flex flex-col h-full overflow-hidden">
-          {/* Sidebar header */}
-          <div className="flex items-center gap-2 mb-4 shrink-0">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            >
-              <Compass size={18} className="text-primary" />
-            </motion.div>
-            <h2 className="text-sm font-black text-white">
-              Find Your Ride Partner
-            </h2>
-          </div>
-
-          {filterPanelContent}
-        </div>
-      </aside>
-
-      {/* ─── MAIN AREA ─── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* ─── TOP BAR ─── */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-black/10 shrink-0 bg-[#070A0F]/90 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            {/* Mobile filter button */}
-            <Drawer open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
-              <DrawerTrigger asChild>
-                <button className="lg:hidden flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white/60 hover:text-white transition-colors">
-                  <SlidersHorizontal size={14} />
-                  <span className="text-xs font-semibold">Filters</span>
-                </button>
-              </DrawerTrigger>
-              <DrawerContent className="bg-card border-white/10 max-h-[92vh]">
-                <DrawerHeader>
-                  <DrawerTitle className="flex items-center gap-2 text-sm">
-                    <Compass size={15} className="text-primary" />
-                    Find Your Ride Partner
-                  </DrawerTitle>
-                </DrawerHeader>
-                <div
-                  className="px-4 pb-4 overflow-y-auto"
-                  style={{ maxHeight: "calc(92vh - 80px)" }}
-                >
-                  <FilterPanel filters={filters} onChange={patchFilters} />
-                  <PremiumCard />
-                </div>
-              </DrawerContent>
-            </Drawer>
-
-            {/* Rider count & Swipe Badge */}
-            {!isLoading && (
-              <div className="flex items-center gap-3 md:gap-4 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <motion.div
-                    className="w-1.5 h-1.5 rounded-full bg-primary"
-                    animate={{ scale: [1, 1.4, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-                  <span className="text-white font-black text-sm">
-                    {nearbyCount}
-                  </span>
-                  <span className="text-white/40 text-sm">Riders Nearby</span>
-                </div>
-
-                {/* Swipe Counter Badge */}
-                {currentPlan === "free" ? (
-                  swipesLeft > 0 ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-bold text-primary shadow-[0_0_12px_rgba(214,255,47,0.15)]">
-                      <Zap size={13} className="text-primary fill-primary" />
-                      <span>{swipesLeft} / {MAX_DAILY_SWIPES} Swipes Left</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setMobileFilterOpen(true)}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/40 text-xs font-bold text-red-400 hover:bg-red-500/25 transition-all shadow-[0_0_12px_rgba(239,68,68,0.2)]"
-                    >
-                      <Zap size={13} className="text-red-400 fill-red-400 animate-pulse" />
-                      <span>0 / {MAX_DAILY_SWIPES} Left — Upgrade to Swipe</span>
-                    </button>
-                  )
-                ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-400">
-                    <Zap size={13} className="text-blue-400 fill-blue-400" />
-                    <span className="capitalize">{currentPlan} • Unlimited Swipes</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isLoading && (
-              <div className="flex items-center gap-2 text-white/40 text-sm">
-                <RefreshCw size={13} className="animate-spin text-primary" />
-                Scanning area…
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ─── CONTENT ─── */}
-        <div className="flex-1 overflow-y-auto flex items-start justify-center py-6 px-4">
-          <AnimatePresence mode="wait">
-            {searching ? (
-              <motion.div
-                key="searching"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="flex flex-col items-center gap-6 mt-20"
+      {/* ─── FULL-WIDTH TOP BAR (Spans completely above both Left Sidebar and Main Area) ─── */}
+      <div className="w-full flex items-center justify-between px-5 py-3.5 border-b border-black/10 shrink-0 bg-[#070A0F]/90 backdrop-blur-xl z-20">
+        <div className="flex items-center gap-3">
+          {/* Mobile filter button */}
+          <Drawer open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
+            <DrawerTrigger asChild>
+              <button className="lg:hidden flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white/60 hover:text-white transition-colors">
+                <SlidersHorizontal size={14} />
+                <span className="text-xs font-semibold">Filters</span>
+              </button>
+            </DrawerTrigger>
+            <DrawerContent className="bg-card border-white/10 max-h-[92vh]">
+              <DrawerHeader>
+                <DrawerTitle className="flex items-center gap-2 text-sm">
+                  <Compass size={15} className="text-primary" />
+                  Find Your Ride Partner
+                </DrawerTitle>
+              </DrawerHeader>
+              <div
+                className="px-4 pb-4 overflow-y-auto"
+                style={{ maxHeight: "calc(92vh - 80px)" }}
               >
-                <div className="relative">
-                  {[0, 1, 2].map((i) => (
+                <FilterPanel filters={filters} onChange={patchFilters} />
+                <PremiumCard />
+              </div>
+            </DrawerContent>
+          </Drawer>
+
+          {/* Rider count & Swipe Badge */}
+          {!isLoading && (
+            <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <motion.div
+                  className="w-1.5 h-1.5 rounded-full bg-primary"
+                  animate={{ scale: [1, 1.4, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <span className="text-white font-black text-sm">
+                  {nearbyCount}
+                </span>
+                <span className="text-white/40 text-sm">Riders Nearby</span>
+              </div>
+
+              {/* Swipe Counter Badge */}
+              {currentPlan === "free" ? (
+                swipesLeft > 0 ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-bold text-primary shadow-[0_0_12px_rgba(214,255,47,0.15)]">
+                    <Zap size={13} className="text-primary fill-primary" />
+                    <span>{swipesLeft} / {MAX_DAILY_SWIPES} Swipes Left</span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMobileFilterOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/40 text-xs font-bold text-red-400 hover:bg-red-500/25 transition-all shadow-[0_0_12px_rgba(239,68,68,0.2)]"
+                  >
+                    <Zap size={13} className="text-red-400 fill-red-400 animate-pulse" />
+                    <span>0 / {MAX_DAILY_SWIPES} Left — Upgrade to Swipe</span>
+                  </button>
+                )
+              ) : (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-bold text-blue-400">
+                  <Zap size={13} className="text-blue-400 fill-blue-400" />
+                  <span className="capitalize">{currentPlan} • Unlimited Swipes</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="flex items-center gap-2 text-white/40 text-sm">
+              <RefreshCw size={13} className="animate-spin text-primary" />
+              Scanning area…
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── BODY (Sidebar + Main Area) ─── */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* ─── LEFT SIDEBAR (320px, desktop) ─── */}
+        <aside
+          className="hidden lg:flex flex-col shrink-0 border-r border-black/10 p-4"
+          style={{ width: 320 }}
+        >
+          <div className="rounded-2xl bg-card/60 backdrop-blur-xl border border-white/8 p-4 flex flex-col h-full overflow-hidden">
+            {/* Sidebar header */}
+            <div className="flex items-center gap-2 mb-4 shrink-0">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              >
+                <Compass size={18} className="text-primary" />
+              </motion.div>
+              <h2 className="text-sm font-black text-white">
+                Find Your Ride Partner
+              </h2>
+            </div>
+
+            {filterPanelContent}
+          </div>
+        </aside>
+
+        {/* ─── MAIN AREA ─── */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* ─── CONTENT ─── */}
+          <div className="flex-1 overflow-y-auto flex items-start justify-center py-6 px-4">
+            <AnimatePresence mode="wait">
+              {searching ? (
+                <motion.div
+                  key="searching"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex flex-col items-center gap-6 mt-20"
+                >
+                  <div className="relative">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute inset-0 rounded-full border border-primary/30"
+                        animate={{ scale: [1, 2.5 + i * 0.5], opacity: [0.6, 0] }}
+                        transition={{
+                          duration: 1.8,
+                          delay: i * 0.4,
+                          repeat: Infinity,
+                          ease: "easeOut",
+                        }}
+                        style={{ margin: "-8px" }}
+                      />
+                    ))}
                     <motion.div
-                      key={i}
-                      className="absolute inset-0 rounded-full border border-primary/30"
-                      animate={{ scale: [1, 2.5 + i * 0.5], opacity: [0.6, 0] }}
+                      animate={{ rotate: 360 }}
                       transition={{
-                        duration: 1.8,
-                        delay: i * 0.4,
+                        duration: 2,
                         repeat: Infinity,
-                        ease: "easeOut",
+                        ease: "linear",
                       }}
-                      style={{ margin: "-8px" }}
-                    />
-                  ))}
+                      className="relative w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                    >
+                      <Compass size={30} className="text-primary" />
+                    </motion.div>
+                  </div>
+                  <p className="text-white/60 text-sm font-medium animate-pulse">
+                    Finding your ride partner…
+                  </p>
+                </motion.div>
+              ) : isLoading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center gap-4 mt-20"
+                >
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                    className="relative w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
                   >
-                    <Compass size={30} className="text-primary" />
+                    <Compass size={26} className="text-primary" />
                   </motion.div>
-                </div>
-                <p className="text-white/60 text-sm font-medium animate-pulse">
-                  Finding your ride partner…
-                </p>
-              </motion.div>
-            ) : isLoading ? (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center gap-4 mt-20"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center"
-                >
-                  <Compass size={26} className="text-primary" />
+                  <p className="text-white/40 text-sm">Scanning nearby riders…</p>
                 </motion.div>
-                <p className="text-white/40 text-sm">Scanning nearby riders…</p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="stack"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-              >
-                <SwipeDeck
-                  riders={riders}
-                  onSwipe={handleSwipe}
-                  filters={filters}
-                  onIncreaseRadius={handleIncreaseRadius}
-                  onRefresh={handleRefresh}
-                  onExploreGroups={handleExploreGroups}
-                  onCreateRide={handleCreateRide}
-                  isLimitReached={isLimitReached}
-                  onUpgrade={() => setMobileFilterOpen(true)}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
+              ) : (
+                <motion.div
+                  key="stack"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <SwipeDeck
+                    riders={riders}
+                    onSwipe={handleSwipe}
+                    filters={filters}
+                    onIncreaseRadius={handleIncreaseRadius}
+                    onRefresh={handleRefresh}
+                    onExploreGroups={handleExploreGroups}
+                    onCreateRide={handleCreateRide}
+                    isLimitReached={isLimitReached}
+                    onUpgrade={() => setMobileFilterOpen(true)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
