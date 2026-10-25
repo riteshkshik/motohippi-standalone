@@ -1,13 +1,17 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useGetMyProfile, useUpdateMyProfile, useGetFeed, useDeletePost } from '@workspace/api-client-react';
+import { useGetMyProfile, useUpdateMyProfile, useGetFeed } from '@workspace/api-client-react';
 
 // authenticated fetch helper (mirrors how api-client-react works internally)
 async function authFetch(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem('motohippi_token') || sessionStorage.getItem('motohippi_token') || '';
-  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const cleanBase = apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '');
-  const fullUrl = url.startsWith('http') ? url : `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`;
+  const apiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
+  const cleanBase = apiBase ? apiBase.replace(/\/api\/?$/, '').replace(/\/+$/, '') : '';
+  const fullUrl = url.startsWith('http')
+    ? url
+    : cleanBase
+      ? `${cleanBase}${url.startsWith('/api') ? url : `/api${url}`}`
+      : (url.startsWith('/api') ? url : `/api${url}`);
   const res = await fetch(fullUrl, {
     ...options,
     headers: {
@@ -16,8 +20,11 @@ async function authFetch(url: string, options: RequestInit = {}) {
       ...(options.headers || {}),
     },
   });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-  return res.json();
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => '');
+    throw new Error(`Request failed (${res.status}): ${errorText || res.statusText}`);
+  }
+  return res.json().catch(() => ({}));
 }
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { uploadImage } from '@/lib/upload';
@@ -28,6 +35,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import {
   MapPin, Edit3, Settings, Heart, Share2, X, Check,
   Camera, Upload, Link2, MessageCircle, Twitter, Copy, Download,
@@ -962,21 +976,19 @@ export default function Profile() {
 // ─── Posts Grid (placed after Profile so it can use hooks freely) ──────────
 function PostsGrid({ profile }: { profile: any }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { data: userPosts, isLoading: postsLoading } = useQuery({
     queryKey: ['/api/users', profile?.id, 'posts'],
     queryFn: () => authFetch(`/api/users/${profile.id}/posts`),
     enabled: !!profile?.id,
   });
-  const { mutate: deletePost } = useDeletePost();
 
   // User's own posts directly from API
   const myPosts: any[] = Array.isArray(userPosts) ? userPosts : [];
 
   const [lightboxPost, setLightboxPost] = useState<any>(null);
-  const [menuPostId, setMenuPostId] = useState<number | null>(null);
   const [editPost, setEditPost] = useState<any>(null);
-  const [deleteTarget, setDeleteTarget] = useState<any>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [confirmDeletePost, setConfirmDeletePost] = useState<any>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   const fallbackImages: string[] = [
@@ -984,25 +996,8 @@ function PostsGrid({ profile }: { profile: any }) {
     'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&auto=format&fit=crop&q=80',
   ];
 
-  const handleDelete = () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    deletePost({ postId: deleteTarget.id }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/users', profile?.id, 'posts'] });
-        setDeleteTarget(null);
-        setLightboxPost(null);
-      },
-      onSettled: () => setDeleting(false),
-    });
-  };
-
-  // close menu on outside click
-  const closeMenu = () => setMenuPostId(null);
-
   return (
-    <div className="w-full" onClick={closeMenu}>
+    <div className="w-full">
       {/* Header row */}
       <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 sm:pb-4 sm:mb-5">
         <div className="flex items-center gap-2">
@@ -1047,7 +1042,7 @@ function PostsGrid({ profile }: { profile: any }) {
             <div
               key={post.id}
               className="aspect-square relative group rounded-xl overflow-hidden bg-card border border-white/5 cursor-pointer"
-              onClick={e => { e.stopPropagation(); setLightboxPost(post); setMenuPostId(null); }}
+              onClick={e => { e.stopPropagation(); setLightboxPost(post); }}
             >
               <img
                 src={post.imageUrl?.split('|')[0] || fallbackImages[i % 2]}
@@ -1068,8 +1063,8 @@ function PostsGrid({ profile }: { profile: any }) {
                 );
               })()}
 
-              {/* Hover overlay — stats */}
-              <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-5">
+              {/* Hover overlay — stats (pointer-events-none so it never blocks clicks!) */}
+              <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-5 pointer-events-none z-[5]">
                 <span className="text-white font-bold flex items-center gap-1.5 text-sm drop-shadow">
                   <Heart size={16} className="fill-white" /> {post.likesCount ?? 0}
                 </span>
@@ -1078,49 +1073,73 @@ function PostsGrid({ profile }: { profile: any }) {
                 </span>
               </div>
 
-              {/* 3-dot menu button — top right */}
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  setMenuPostId(menuPostId === post.id ? null : post.id);
-                }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
+              {/* 3-dot dropdown menu — uses Radix UI DropdownMenu with built-in Portal (never clipped!) */}
+              <div
+                className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20"
+                onClick={e => e.stopPropagation()}
               >
-                <MoreHorizontal size={14} className="text-white" />
-              </button>
-
-              {/* Dropdown menu */}
-              <AnimatePresence>
-                {menuPostId === post.id && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -4 }}
-                    transition={{ duration: 0.12 }}
-                    className="absolute top-10 right-2 z-20 w-44 bg-[#1a1a1a] border border-white/12 rounded-2xl shadow-2xl overflow-hidden"
-                    onClick={e => e.stopPropagation()}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 data-[state=open]:opacity-100 transition-all hover:bg-black/80 hover:scale-105 active:scale-95 text-white"
+                      title="Post options"
+                    >
+                      <MoreHorizontal size={14} className="text-white" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={6}
+                    collisionPadding={12}
+                    className="w-44 bg-[#16181D]/95 backdrop-blur-xl border border-white/12 rounded-2xl p-1.5 shadow-2xl z-[100] text-white"
                   >
-                    <button
-                      onClick={() => { setEditPost(post); setMenuPostId(null); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white hover:bg-white/8 transition-colors text-left border-b border-white/6"
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.stopPropagation();
+                        setTimeout(() => setEditPost(post), 0);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditPost(post);
+                      }}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white hover:bg-white/10 cursor-pointer"
                     >
-                      <PenLine size={15} className="text-primary" /> Edit Post
-                    </button>
-                    <button
-                      onClick={() => { setLightboxPost(post); setMenuPostId(null); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white hover:bg-white/8 transition-colors text-left border-b border-white/6"
+                      <PenLine size={15} className="text-primary" />
+                      <span>Edit Post</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.stopPropagation();
+                        setTimeout(() => setLightboxPost(post), 0);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxPost(post);
+                      }}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white hover:bg-white/10 cursor-pointer"
                     >
-                      <Eye size={15} className="text-blue-400" /> View Post
-                    </button>
-                    <button
-                      onClick={() => { setDeleteTarget(post); setMenuPostId(null); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/8 transition-colors text-left"
+                      <Eye size={15} className="text-blue-400" />
+                      <span>View Post</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10 my-1" />
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.stopPropagation();
+                        setTimeout(() => setConfirmDeletePost(post), 0);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeletePost(post);
+                      }}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-red-400 hover:bg-red-500/15 hover:text-red-300 cursor-pointer"
                     >
-                      <Trash2 size={15} /> Delete Post
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      <Trash2 size={15} className="text-red-400" />
+                      <span>Delete Post</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ))}
         </div>
@@ -1174,8 +1193,12 @@ function PostsGrid({ profile }: { profile: any }) {
                       <PenLine size={14} className="text-primary" />
                     </button>
                     <button
-                      onClick={() => { setDeleteTarget(lightboxPost); setLightboxPost(null); }}
-                      className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeletePost(lightboxPost);
+                      }}
+                      className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all cursor-pointer"
                       title="Delete Post"
                     >
                       <Trash2 size={14} className="text-red-400" />
@@ -1265,65 +1288,173 @@ function PostsGrid({ profile }: { profile: any }) {
         )}
       </AnimatePresence>
 
-      {/* ── Delete Confirm ── */}
+      {/* ── Delete Confirmation Modal ── */}
       <AnimatePresence>
-        {deleteTarget && typeof document !== 'undefined' && createPortal(
-          <motion.div
-            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
-            <motion.div
-              className="relative w-full max-w-sm bg-[#111] border border-white/10 rounded-3xl p-6 z-10 space-y-5"
-              initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            >
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                  <AlertTriangle size={24} className="text-red-400" />
-                </div>
-                <div>
-                  <h3 className="font-black text-lg text-white mb-1">Delete Post?</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    This will permanently delete your post and all its likes and comments. This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-
-              {/* Preview of post being deleted */}
-              {deleteTarget.imageUrl && (
-                <div className="h-24 rounded-2xl overflow-hidden border border-white/8">
-                  <img src={deleteTarget.imageUrl} alt="post" className="w-full h-full object-cover opacity-60" />
-                </div>
-              )}
-              {deleteTarget.content && (
-                <p className="text-xs text-muted-foreground bg-white/4 rounded-xl p-3 line-clamp-2 border border-white/6">
-                  "{deleteTarget.content}"
-                </p>
-              )}
-
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-black text-sm hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {deleting ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting…</> : <><Trash2 size={15} />Delete</>}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>,
-          document.body
+        {confirmDeletePost && (
+          <DeleteConfirmModal
+            post={confirmDeletePost}
+            onClose={() => setConfirmDeletePost(null)}
+            onDeleted={(targetId) => {
+              // Optimistically update cache so the post immediately disappears from UI
+              queryClient.setQueryData(
+                ['/api/users', profile?.id, 'posts'],
+                (old: any) => Array.isArray(old) ? old.filter((p: any) => p.id !== targetId) : old
+              );
+              queryClient.invalidateQueries({ queryKey: ['/api/feed'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/users', profile?.id, 'posts'] });
+              setConfirmDeletePost(null);
+              if (lightboxPost?.id === targetId) {
+                setLightboxPost(null);
+              }
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
   );
+}
+
+// ─── Delete Confirmation Modal ───────────────────────────────────────────
+function DeleteConfirmModal({
+  post,
+  onClose,
+  onDeleted,
+}: {
+  post: any;
+  onClose: () => void;
+  onDeleted: (postId: number) => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const isDeletingRef = useRef(false);
+  const { toast } = useToast();
+
+  const handleConfirmDelete = async () => {
+    if (!post?.id || isDeletingRef.current) return;
+    isDeletingRef.current = true;
+    setDeleting(true);
+    const targetId = post.id;
+    try {
+      await authFetch(`/api/posts/${targetId}`, {
+        method: 'DELETE',
+      });
+      toast({
+        title: "Post deleted",
+        description: "Your post has been successfully removed.",
+      });
+      onDeleted(targetId);
+      onClose();
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      toast({
+        title: "Error deleting post",
+        description: err.message || "Failed to delete post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      isDeletingRef.current = false;
+      setDeleting(false);
+    }
+  };
+
+  const modalContent = (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+      onClick={() => {
+        if (!deleting) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.94, opacity: 0, y: 12 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.94, opacity: 0, y: 12 }}
+        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+        className="relative w-full max-w-sm rounded-3xl bg-[#14161B] border border-white/12 p-6 shadow-2xl space-y-5 z-10 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+            <Trash2 size={22} />
+          </div>
+          <button
+            type="button"
+            onClick={() => !deleting && onClose()}
+            disabled={deleting}
+            className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-muted-foreground hover:text-white transition-colors disabled:opacity-30 cursor-pointer"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Title & Warning */}
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-black text-white tracking-tight">Delete Post?</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This action is permanent and cannot be undone. All comments and likes on this post will also be deleted.
+          </p>
+        </div>
+
+        {/* Post Preview Snippet */}
+        {(post.imageUrl || post.content) && (
+          <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/8 overflow-hidden">
+            {post.imageUrl && (
+              <img
+                src={typeof post.imageUrl === 'string' ? post.imageUrl.split('|')[0] : post.imageUrl}
+                alt="Thumbnail"
+                className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0 bg-black"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-white/80 line-clamp-2 italic">
+                "{post.content || 'Photo post'}"
+              </p>
+              {post.createdAt && (
+                <span className="text-[10px] text-muted-foreground mt-0.5 block">
+                  {new Date(post.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => !deleting && onClose()}
+            disabled={deleting}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold text-xs transition-colors disabled:opacity-40 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            {deleting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Deleting…</span>
+              </>
+            ) : (
+              <>
+                <Trash2 size={14} />
+                <span>Delete</span>
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }
 
 // ─── Edit Post Modal ──────────────────────────────────────────────────────
