@@ -165,6 +165,27 @@ export function UnreadCountProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
+  // Sync with OS PWA app badge (iOS 16.4+, Android PWA, macOS/Windows Dock/Taskbar)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if ('setAppBadge' in navigator) {
+      if (unreadCount > 0) {
+        navigator.setAppBadge(unreadCount).catch(() => {});
+      } else {
+        navigator.clearAppBadge().catch(() => {});
+      }
+    }
+
+    // Dynamic browser tab title fallback e.g. (3) MotoHippi
+    const baseTitle = 'MotoHippi';
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount > 99 ? '99+' : unreadCount}) ${baseTitle}`;
+    } else if (document.title.startsWith('(')) {
+      document.title = baseTitle;
+    }
+  }, [unreadCount]);
+
   return (
     <UnreadCountContext.Provider value={{ unreadCount, refetchUnread: fetchUnread, decrementUnread }}>
       {children}
