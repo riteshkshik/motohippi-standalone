@@ -140,11 +140,11 @@ const NAV_ITEMS = [
 
 // Mobile bottom bar — primary tabs
 const MOBILE_MAIN = [
-  { href: "/home", icon: Home, label: "Home" },
-  { href: "/messages", icon: MessageSquare, label: "Messages" },
-  { href: "/discover", icon: Compass, label: "Find" },
-  { href: "/insurance", icon: Shield, label: "Insurance" },
   { href: "/feed", icon: Users, label: "Stories" },
+  { href: "/messages", icon: MessageSquare, label: "Message" },
+  { href: "/discover", icon: Compass, label: "Find" },
+  { href: "/marketplace", icon: ShoppingBag, label: "Shop" },
+  { href: "/insurance", icon: Shield, label: "Insurance" },
 ];
 
 // ─── Valid App Routes that should display the sidebar navigation ─────────────
@@ -598,14 +598,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
             <div className="flex items-center gap-1">
-              <Link href="/cart">
-                <button className="relative w-10 h-10 flex items-center justify-center rounded-full text-muted-foreground hover:text-white transition-colors">
+              <Link href="/marketplace" title="Marketplace">
+                <button
+                  className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
+                    isActive("/marketplace")
+                      ? "text-[#b6fa0f]"
+                      : "text-muted-foreground hover:text-white"
+                  }`}
+                >
                   <ShoppingBag size={20} />
-                  {cartCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary text-black text-[9px] font-black flex items-center justify-center">
-                      {cartCount}
-                    </span>
-                  )}
                 </button>
               </Link>
               <Link href="/profile">
