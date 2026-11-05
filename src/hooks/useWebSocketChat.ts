@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+export interface ReplySnippet {
+  id: number;
+  senderId?: number;
+  senderName: string;
+  content: string;
+  messageType?: string;
+}
+
 export interface ChatMessage {
   id: number;
   conversationId: number;
   senderId: number;
   content: string;
   messageType?: string;
+  replyToId?: number | null;
+  replyTo?: ReplySnippet | null;
   createdAt: string;
 }
 
@@ -15,6 +25,8 @@ export interface GroupChatMessage {
   senderId: number;
   content: string;
   messageType?: string;
+  replyToId?: number | null;
+  replyTo?: ReplySnippet | null;
   createdAt: string;
   sender?: {
     id: number;
@@ -175,7 +187,7 @@ export function useWebSocketChat(
     };
   }, [token, getWsUrl]);
 
-  const sendMessage = useCallback((conversationId: number, content: string, messageType: string = 'text') => {
+  const sendMessage = useCallback((conversationId: number, content: string, messageType: string = 'text', replyToId?: number | null) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
@@ -183,6 +195,7 @@ export function useWebSocketChat(
           conversationId,
           content,
           messageType,
+          replyToId: replyToId ?? null,
         })
       );
       return true;
@@ -190,7 +203,7 @@ export function useWebSocketChat(
     return false;
   }, []);
 
-  const sendGroupMessage = useCallback((groupId: number, content: string, messageType: string = 'text') => {
+  const sendGroupMessage = useCallback((groupId: number, content: string, messageType: string = 'text', replyToId?: number | null) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
@@ -198,6 +211,7 @@ export function useWebSocketChat(
           groupId,
           content,
           messageType,
+          replyToId: replyToId ?? null,
         })
       );
       return true;

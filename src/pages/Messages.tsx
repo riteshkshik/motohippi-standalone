@@ -27,6 +27,7 @@ import {
   MapPin,
   UserPlus,
   ChevronRight,
+  CornerUpLeft,
 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +38,7 @@ import {
   useWebSocketChat,
   ChatMessage,
   GroupChatMessage,
+  ReplySnippet,
 } from "@/hooks/useWebSocketChat";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import {
@@ -1095,6 +1097,321 @@ export default function Messages() {
   );
 }
 
+// ─── Reply Components & Helpers ───────────────────────────────────────────────
+interface ReplyTarget {
+  id: number;
+  senderName: string;
+  content: string;
+  messageType?: string;
+}
+
+function ReplyPreviewBar({
+  replyTarget,
+  onClear,
+}: {
+  replyTarget: ReplyTarget | null;
+  onClear: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {replyTarget && (
+        <motion.div
+          initial={{ opacity: 0, height: 0, y: 8 }}
+          animate={{ opacity: 1, height: "auto", y: 0 }}
+          exit={{ opacity: 0, height: 0, y: 8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="overflow-hidden mb-2"
+        >
+          <div className="bg-card/95 border border-white/10 rounded-2xl px-3 py-2 flex items-center justify-between gap-3 backdrop-blur-md shadow-lg">
+            <div className="flex items-center gap-2.5 overflow-hidden flex-1 border-l-2 border-primary pl-2.5">
+              <CornerUpLeft size={15} className="text-primary shrink-0" />
+              <div className="flex flex-col overflow-hidden min-w-0">
+                <span className="text-[11px] font-bold text-primary truncate leading-tight">
+                  Replying to {replyTarget.senderName}
+                </span>
+                <span className="text-xs text-muted-foreground truncate mt-0.5 leading-tight">
+                  {replyTarget.messageType === "image" || (typeof replyTarget.content === "string" && replyTarget.content.startsWith("http"))
+                    ? "📷 Photo"
+                    : replyTarget.content}
+                </span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClear}
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 shrink-0"
+              title="Cancel reply"
+            >
+              <X size={15} />
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function QuotedMessageCard({
+  replyTo,
+  isMe,
+  onClick,
+}: {
+  replyTo?: ReplySnippet | null;
+  isMe: boolean;
+  onClick?: () => void;
+}) {
+  if (!replyTo) return null;
+
+  const isImage =
+    replyTo.messageType === "image" ||
+    (typeof replyTo.content === "string" &&
+      replyTo.content.startsWith("http") &&
+      (replyTo.content.includes("chat_images") ||
+        replyTo.content.match(/\.(jpeg|jpg|gif|png|webp)/i)));
+
+  return (
+    <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      className={`mb-2 p-2 rounded-xl cursor-pointer transition-all border-l-[3px] text-xs select-none flex items-center gap-2 ${
+        isMe
+          ? "bg-black/20 border-black/70 text-black hover:bg-black/30"
+          : "bg-white/5 border-primary text-white hover:bg-white/10"
+      }`}
+    >
+      <div className="flex-1 overflow-hidden min-w-0">
+        <div className={`font-bold text-[11px] truncate ${isMe ? "text-black" : "text-primary"}`}>
+          {replyTo.senderName || "Rider"}
+        </div>
+        <div className={`truncate mt-0.5 ${isMe ? "text-black/80 font-normal" : "text-white/70"}`}>
+          {isImage ? "📷 Photo" : replyTo.content}
+        </div>
+      </div>
+      {isImage && (
+        <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40">
+          <img src={replyTo.content} alt="preview" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SwipeableMessageRow({
+  children,
+  onReply,
+  onCopy,
+  align = "right",
+}: {
+  children: React.ReactNode;
+  onReply: () => void;
+  onCopy?: () => void;
+  align?: "left" | "right";
+}) {
+  const isRight = align === "right";
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isPastThreshold, setIsPastThreshold] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const longPressTimerRef = useRef<any>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Native mobile touch handlers for bulletproof swipe & long-press
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+
+    longPressTimerRef.current = setTimeout(() => {
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(20);
+      }
+      setShowMobileMenu(true);
+    }, 450);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartPos.current.x;
+    const dy = touch.clientY - touchStartPos.current.y;
+
+    // If scrolling vertically or dragging horizontally, cancel long-press
+    if (Math.abs(dy) > 10 || Math.abs(dx) > 10) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPos.current = null;
+  };
+
+  const handleDrag = (_: any, info: { offset: { x: number } }) => {
+    const ox = info.offset.x;
+    setDragOffset(ox);
+    // Right-aligned bubble swipes left (negative x), Left-aligned bubble swipes right (positive x)
+    const active = isRight ? ox < -32 : ox > 32;
+    setIsPastThreshold(active);
+  };
+
+  const handleDragEnd = (_: any, info: { offset: { x: number } }) => {
+    const ox = info.offset.x;
+    const triggered = isRight ? ox < -32 : ox > 32;
+    setDragOffset(0);
+    setIsPastThreshold(false);
+    if (triggered) {
+      if (typeof window !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(15);
+      }
+      onReply();
+    }
+  };
+
+  return (
+    <div
+      className={`relative group/row w-full flex items-center my-0.5 ${
+        isRight ? "justify-end" : "justify-start"
+      }`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Mobile Long-Press Floating Action Sheet */}
+      <AnimatePresence>
+        {showMobileMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 5 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 5 }}
+            transition={{ duration: 0.15 }}
+            className={`absolute z-30 -top-10 ${
+              isRight ? "right-2" : "left-2"
+            } bg-zinc-900 border border-white/20 rounded-full px-2 py-1 shadow-2xl flex items-center gap-1 backdrop-blur-xl`}
+          >
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setShowMobileMenu(false);
+                onReply();
+              }}
+              className="h-7 px-2.5 rounded-full text-xs font-semibold text-primary hover:bg-primary/20 flex items-center gap-1.5"
+            >
+              <CornerUpLeft size={13} />
+              Reply
+            </Button>
+            {onCopy && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  onCopy();
+                }}
+                className="h-7 px-2.5 rounded-full text-xs font-semibold text-white/90 hover:bg-white/10"
+              >
+                Copy
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowMobileMenu(false)}
+              className="h-6 w-6 rounded-full text-muted-foreground hover:text-white"
+            >
+              <X size={12} />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Hover Quick Action Button (Placed directly to the LEFT of outgoing messages) */}
+      {isRight && (
+        <div className="hidden md:flex items-center opacity-0 group-hover/row:opacity-100 transition-all duration-150 mr-2 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onReply}
+            className="h-8 w-8 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95"
+            title="Reply"
+          >
+            <CornerUpLeft size={14} />
+          </Button>
+        </div>
+      )}
+
+      {/* Message Bubble + Swipe Gesture Container */}
+      <div className="relative max-w-[80%] md:max-w-[70%]">
+        {/* Background Reply Icon (ONLY visible when actively dragging past 8px) */}
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-150 z-0 ${
+            isRight ? "-right-10" : "-left-10"
+          } ${
+            Math.abs(dragOffset) > 8
+              ? isPastThreshold
+                ? "opacity-100 scale-110 text-primary"
+                : "opacity-60 scale-95 text-zinc-400"
+              : "opacity-0 scale-75"
+          }`}
+        >
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-md backdrop-blur-md ${
+              isPastThreshold
+                ? "bg-primary/20 border-primary text-primary"
+                : "bg-white/10 border-white/20 text-white"
+            }`}
+          >
+            <CornerUpLeft size={16} />
+          </div>
+        </div>
+
+        {/* Swipeable Bubble Container */}
+        <motion.div
+          drag="x"
+          dragConstraints={{
+            left: isRight ? -75 : 0,
+            right: isRight ? 0 : 75,
+          }}
+          dragElastic={0.25}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          className="z-10 w-full touch-pan-y"
+        >
+          {children}
+        </motion.div>
+      </div>
+
+      {/* Desktop Hover Quick Action Button (Placed directly to the RIGHT of incoming messages) */}
+      {!isRight && (
+        <div className="hidden md:flex items-center opacity-0 group-hover/row:opacity-100 transition-all duration-150 ml-2 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onReply}
+            className="h-8 w-8 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95"
+            title="Reply"
+          >
+            <CornerUpLeft size={14} />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Chat View with Real-Time WebSocket Support ─────────────────────────────────
 function ChatView({
   conversationId,
@@ -1109,15 +1426,34 @@ function ChatView({
   const { toast } = useToast();
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [text, setText] = useState("");
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data: conversations } = useGetConversations();
 
   const conversationsList = Array.isArray(conversations) ? conversations : [];
   const conversation = conversationsList.find((c) => c.id === conversationId);
   const token = getToken();
+
+  // Jump to quoted message with smooth scroll & highlight
+  const handleJumpToMessage = (messageId: number) => {
+    const element = document.getElementById(`msg-${messageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.classList.add("ring-2", "ring-primary", "transition-all", "duration-500");
+      setTimeout(() => {
+        element.classList.remove("ring-2", "ring-primary");
+      }, 1500);
+    } else {
+      toast({
+        title: "Earlier in Chat",
+        description: "This message was sent earlier in the conversation history.",
+      });
+    }
+  };
 
   // Handle incoming real-time WebSocket messages
   const handleNewMessage = (msg: ChatMessage) => {
@@ -1236,12 +1572,14 @@ function ChatView({
     const cleanText = text.trim();
     if (!cleanText) return;
 
+    const replyId = replyTarget?.id ?? null;
+
     // Try WebSocket real-time send first
-    const sentViaWs = sendMessage(conversationId, cleanText, "text");
+    const sentViaWs = sendMessage(conversationId, cleanText, "text", replyId);
     if (!sentViaWs) {
       // Fallback to HTTP POST
       sendMutation.mutate(
-        { conversationId, data: { content: cleanText, messageType: "text" } },
+        { conversationId, data: { content: cleanText, messageType: "text", replyToId: replyId } as any },
         {
           onSuccess: (data: any) => {
             if (data) {
@@ -1252,6 +1590,7 @@ function ChatView({
       );
     }
     setText("");
+    setReplyTarget(null);
   };
 
   return (
@@ -1336,12 +1675,35 @@ function ChatView({
           const isMe = msg.senderId !== conversation?.participant?.id;
 
           return (
-            <div
+            <SwipeableMessageRow
               key={msg.id || index}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              align={isMe ? "right" : "left"}
+              onReply={() => {
+                const senderName = isMe
+                  ? "Yourself"
+                  : conversation?.participant?.name || "Rider";
+                setReplyTarget({
+                  id: msg.id,
+                  senderName,
+                  content: msg.content,
+                  messageType: msg.messageType,
+                });
+                textInputRef.current?.focus();
+              }}
+              onCopy={
+                !isImageMsg && typeof msg.content === "string"
+                  ? () => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(msg.content);
+                        toast({ title: "Copied to clipboard" });
+                      }
+                    }
+                  : undefined
+              }
             >
               <div
-                className={`max-w-[75%] md:max-w-[65%] rounded-2xl ${
+                id={`msg-${msg.id}`}
+                className={`w-fit max-w-full rounded-2xl ${
                   isImageMsg
                     ? "p-0 bg-transparent"
                     : "px-4 py-2.5 text-sm leading-relaxed"
@@ -1355,6 +1717,15 @@ function ChatView({
                       : "bg-[#18181b]/90 text-white rounded-tl-sm border border-white/10 backdrop-blur-sm shadow-md"
                 }`}
               >
+                {/* Quoted Reply Card */}
+                <QuotedMessageCard
+                  replyTo={msg.replyTo}
+                  isMe={isMe}
+                  onClick={() =>
+                    msg.replyTo && handleJumpToMessage(msg.replyTo.id)
+                  }
+                />
+
                 {isImageMsg ? (
                   <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-lg">
                     <img
@@ -1391,7 +1762,7 @@ function ChatView({
                   </>
                 )}
               </div>
-            </div>
+            </SwipeableMessageRow>
           );
         })}
         <div ref={bottomRef} />
@@ -1399,6 +1770,10 @@ function ChatView({
 
       {/* Input Bar */}
       <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <ReplyPreviewBar
+          replyTarget={replyTarget}
+          onClear={() => setReplyTarget(null)}
+        />
         <input
           type="file"
           ref={fileInputRef}
@@ -1424,6 +1799,7 @@ function ChatView({
           </Button>
 
           <Input
+            ref={textInputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onFocus={() => {
@@ -1501,6 +1877,7 @@ function GroupChatView({
 
   const [messagesList, setMessagesList] = useState<GroupChatMessage[]>([]);
   const [text, setText] = useState("");
+  const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
@@ -1512,7 +1889,25 @@ function GroupChatView({
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Jump to quoted message with smooth scroll & highlight
+  const handleJumpToMessage = (messageId: number) => {
+    const element = document.getElementById(`msg-${messageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.classList.add("ring-2", "ring-primary", "transition-all", "duration-500");
+      setTimeout(() => {
+        element.classList.remove("ring-2", "ring-primary");
+      }, 1500);
+    } else {
+      toast({
+        title: "Earlier in Group Chat",
+        description: "This message was sent earlier in the conversation history.",
+      });
+    }
+  };
 
   // Debounced search for riders to add
   useEffect(() => {
@@ -1764,13 +2159,15 @@ function GroupChatView({
     const cleanText = text.trim();
     if (!cleanText) return;
 
-    const sentViaWs = sendGroupMessage(groupId, cleanText, "text");
+    const replyId = replyTarget?.id ?? null;
+
+    const sentViaWs = sendGroupMessage(groupId, cleanText, "text", replyId);
     if (!sentViaWs) {
       fetch(`${API_BASE}/groups/${groupId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ content: cleanText, messageType: "text" }),
+        body: JSON.stringify({ content: cleanText, messageType: "text", replyToId: replyId }),
       })
         .then(async (res) => {
           const data = await res.json();
@@ -1796,6 +2193,7 @@ function GroupChatView({
         });
     }
     setText("");
+    setReplyTarget(null);
   };
 
   const membersList = Array.isArray(groupMembers) ? groupMembers : [];
@@ -1912,89 +2310,125 @@ function GroupChatView({
           const isMe = msg.senderId === user?.id;
 
           return (
-            <div
+            <SwipeableMessageRow
               key={msg.id || index}
-              className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+              align={isMe ? "right" : "left"}
+              onReply={() => {
+                const senderName = isMe
+                  ? "Yourself"
+                  : msg.sender?.name || "Rider";
+                setReplyTarget({
+                  id: msg.id,
+                  senderName,
+                  content: msg.content,
+                  messageType: msg.messageType,
+                });
+                textInputRef.current?.focus();
+              }}
+              onCopy={
+                !isImageMsg && typeof msg.content === "string"
+                  ? () => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(msg.content);
+                        toast({ title: "Copied to clipboard" });
+                      }
+                    }
+                  : undefined
+              }
             >
-              {/* Sender Name Attribution (for incoming group messages) */}
-              {!isMe && (
-                <div className="flex items-center gap-1.5 mb-1 px-1">
-                  <Avatar className="h-4 w-4 border border-white/10 shrink-0">
-                    <AvatarImage src={msg.sender?.avatarUrl ?? ""} />
-                    <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
-                      {msg.sender?.name?.charAt(0) ?? "R"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs font-black text-primary leading-none">
-                    {msg.sender?.name ?? "Rider"}
-                  </span>
-                  {msg.sender?.vehicleType && (
-                    <span className="text-[10px] text-muted-foreground/70 font-medium">
-                      • {msg.sender.vehicleType}
+              <div
+                className={`flex flex-col w-full ${isMe ? "items-end" : "items-start"}`}
+              >
+                {/* Sender Name Attribution (for incoming group messages) */}
+                {!isMe && (
+                  <div className="flex items-center gap-1.5 mb-1 px-1">
+                    <Avatar className="h-4 w-4 border border-white/10 shrink-0">
+                      <AvatarImage src={msg.sender?.avatarUrl ?? ""} />
+                      <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                        {msg.sender?.name?.charAt(0) ?? "R"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-black text-primary leading-none">
+                      {msg.sender?.name ?? "Rider"}
                     </span>
+                    {msg.sender?.vehicleType && (
+                      <span className="text-[10px] text-muted-foreground/70 font-medium">
+                        • {msg.sender.vehicleType}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Message Bubble */}
+                <div
+                  id={`msg-${msg.id}`}
+                  className={`w-fit max-w-full rounded-2xl ${
+                    isImageMsg
+                      ? "p-0 bg-transparent"
+                      : "px-4 py-2.5 text-sm leading-relaxed"
+                  } ${
+                    isMe
+                      ? isImageMsg
+                        ? "rounded-tr-sm"
+                        : "bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]"
+                      : isImageMsg
+                        ? "rounded-tl-sm"
+                        : "bg-[#18181b]/90 text-white rounded-tl-sm border border-white/10 backdrop-blur-sm shadow-md"
+                  }`}
+                >
+                  {/* Quoted Reply Card */}
+                  <QuotedMessageCard
+                    replyTo={msg.replyTo}
+                    isMe={isMe}
+                    onClick={() =>
+                      msg.replyTo && handleJumpToMessage(msg.replyTo.id)
+                    }
+                  />
+
+                  {isImageMsg ? (
+                    <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-lg">
+                      <img
+                        src={msg.content}
+                        alt="Shared Image"
+                        onClick={() => setLightboxImageUrl(msg.content)}
+                        className="max-h-[320px] w-full object-cover rounded-2xl cursor-pointer hover:opacity-95 transition-all block"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setLightboxImageUrl(msg.content)}
+                        className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md"
+                      >
+                        <Maximize2 size={14} />
+                      </button>
+                      <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[10px] text-white/90 font-medium border border-white/10 shadow-md pointer-events-none">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap break-words">
+                        {msg.content}
+                      </p>
+                      <div
+                        className={`text-[10px] mt-1 px-1 opacity-60 ${
+                          isMe
+                            ? "text-right text-black/70"
+                            : "text-left text-white/50"
+                        }`}
+                      >
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
-              )}
-
-              {/* Message Bubble */}
-              <div
-                className={`max-w-[80%] md:max-w-[65%] rounded-2xl ${
-                  isImageMsg
-                    ? "p-0 bg-transparent"
-                    : "px-4 py-2.5 text-sm leading-relaxed"
-                } ${
-                  isMe
-                    ? isImageMsg
-                      ? "rounded-tr-sm"
-                      : "bg-primary text-black rounded-tr-sm font-medium shadow-[0_0_12px_rgba(214,255,47,0.15)]"
-                    : isImageMsg
-                      ? "rounded-tl-sm"
-                      : "bg-[#18181b]/90 text-white rounded-tl-sm border border-white/10 backdrop-blur-sm shadow-md"
-                }`}
-              >
-                {isImageMsg ? (
-                  <div className="relative group overflow-hidden rounded-2xl border border-white/10 shadow-lg">
-                    <img
-                      src={msg.content}
-                      alt="Shared Image"
-                      onClick={() => setLightboxImageUrl(msg.content)}
-                      className="max-h-[320px] w-full object-cover rounded-2xl cursor-pointer hover:opacity-95 transition-all block"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setLightboxImageUrl(msg.content)}
-                      className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-md"
-                    >
-                      <Maximize2 size={14} />
-                    </button>
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[10px] text-white/90 font-medium border border-white/10 shadow-md pointer-events-none">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <p className="whitespace-pre-wrap break-words">
-                      {msg.content}
-                    </p>
-                    <div
-                      className={`text-[10px] mt-1 px-1 opacity-60 ${
-                        isMe
-                          ? "text-right text-black/70"
-                          : "text-left text-white/50"
-                      }`}
-                    >
-                      {new Date(msg.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </>
-                )}
               </div>
-            </div>
+            </SwipeableMessageRow>
           );
         })}
         <div ref={bottomRef} />
@@ -2002,6 +2436,10 @@ function GroupChatView({
 
       {/* Input Bar */}
       <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <ReplyPreviewBar
+          replyTarget={replyTarget}
+          onClear={() => setReplyTarget(null)}
+        />
         <input
           type="file"
           ref={fileInputRef}
@@ -2027,6 +2465,7 @@ function GroupChatView({
           </Button>
 
           <Input
+            ref={textInputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onFocus={() => {
