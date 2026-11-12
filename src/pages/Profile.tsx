@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'wouter';
 import { useGetMyProfile, useUpdateMyProfile, useGetFeed } from '@workspace/api-client-react';
 
 // authenticated fetch helper (mirrors how api-client-react works internally)
@@ -1252,11 +1253,23 @@ function PostsGrid({ profile }: { profile: any }) {
                     <span className="font-bold text-white">{lightboxPost.likesCount ?? 0}</span>
                     <span className="text-muted-foreground text-xs">likes</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-sm">
+                  <Link
+                    href={`/feed/${lightboxPost.id}#comments`}
+                    onClick={() => setLightboxPost(null)}
+                    className="flex items-center gap-1.5 text-sm hover:text-primary transition-colors cursor-pointer"
+                  >
                     <MessageSquare size={16} className="text-muted-foreground" />
                     <span className="font-bold text-white">{lightboxPost.commentsCount ?? 0}</span>
                     <span className="text-muted-foreground text-xs">comments</span>
-                  </div>
+                  </Link>
+                  <Link
+                    href={`/feed/${lightboxPost.id}`}
+                    onClick={() => setLightboxPost(null)}
+                    className="ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/25 transition-colors"
+                  >
+                    <span>View Post</span>
+                    <ExternalLink size={12} />
+                  </Link>
                 </div>
               </div>
             </motion.div>

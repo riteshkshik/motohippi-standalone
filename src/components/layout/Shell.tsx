@@ -153,6 +153,7 @@ const VALID_SIDEBAR_ROUTES = [
   "/home",
   "/discover",
   "/feed",
+  "/post",
   "/marketplace",
   "/insurance",
   "/messages",
@@ -277,7 +278,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isActive = (href: string) => location.startsWith(href);
+  const isActive = (href: string) =>
+    location.startsWith(href) || (href === "/feed" && location.startsWith("/post/"));
+  const isPostDetail = /^\/(feed|post)\/\d+/.test(location.split("?")[0].split("#")[0]);
 
   // ── Logged-in layout ────────────────────────────────────────────────────────
   return (
@@ -634,13 +637,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </header>
         )}
 
-        <main className={`flex-1 overflow-x-hidden min-h-0 ${isInsideChat ? 'pb-0' : 'pb-24'} md:pb-0`}>
+        <main className={`flex-1 overflow-x-hidden min-h-0 ${isInsideChat || isPostDetail ? 'pb-0' : 'pb-24'} md:pb-0`}>
           {children}
         </main>
       </div>
 
       {/* ── Mobile bottom nav ────────────────────────────────────────────────── */}
-      {!isInsideChat && (
+      {!isInsideChat && !isPostDetail && (
         <nav
           className="md:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}

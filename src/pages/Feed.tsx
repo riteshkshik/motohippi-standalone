@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGetFeed } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -85,9 +85,9 @@ function timeAgo(iso: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Feed() {
   const { isLoggedIn } = useAuth();
+  const [, navigate] = useLocation();
   const [activeCat, setActiveCat] = useState("all");
   const [showSuggest, setShowSuggest] = useState(false);
-  const [commentPost, setCommentPost] = useState<any>(null);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [likesPost, setLikesPost] = useState<any>(null);
   const queryClient = useQueryClient();
@@ -104,6 +104,13 @@ export default function Feed() {
     ? parseInt(rawPostParam.trim().split(/\s+/)[0], 10)
     : null;
   const targetPostId = Number.isFinite(parsedPostId) ? parsedPostId : null;
+
+  // Redirect legacy ?post=ID links to the dedicated post detail page
+  useEffect(() => {
+    if (targetPostId) {
+      navigate(`/feed/${targetPostId}`, { replace: true });
+    }
+  }, [targetPostId, navigate]);
 
   // Direct fetch for shared post to guarantee deep-link works even for guests
   const { data: linkedPost, isLoading: isLinkedLoading } = useQuery({
@@ -285,7 +292,8 @@ export default function Feed() {
                 key={post.id}
                 post={post}
                 isHighlighted={post.id === targetPostId}
-                onComment={() => setCommentPost(post)}
+                onOpenPost={() => navigate(`/feed/${post.id}`)}
+                onComment={() => navigate(`/feed/${post.id}#comments`)}
                 onShowLikes={() => setLikesPost(post)}
                 onViewAuthor={(id) => setSelectedUserId(id)}
                 onRefresh={() =>
@@ -322,16 +330,6 @@ export default function Feed() {
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {commentPost && (
-          <CommentDrawer
-            post={commentPost}
-            onClose={() => setCommentPost(null)}
-            onViewAuthor={(id) => setSelectedUserId(id)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {selectedUserId && (
           <UserProfileModal
             userId={selectedUserId}
@@ -359,6 +357,7 @@ export default function Feed() {
 // ─── Place Card ───────────────────────────────────────────────────────────────
 function PlaceCard({
   post,
+  onOpenPost,
   onComment,
   onShowLikes,
   onRefresh,
@@ -366,6 +365,7 @@ function PlaceCard({
   isHighlighted = false,
 }: {
   post: any;
+  onOpenPost: () => void;
   onComment: () => void;
   onShowLikes: () => void;
   onRefresh: () => void;
@@ -466,7 +466,7 @@ function PlaceCard({
 
   const handleShare = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const postUrl = `${window.location.origin}/feed?post=${post.id}`;
+    const postUrl = `${window.location.origin}/feed/${post.id}`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -509,7 +509,7 @@ function PlaceCard({
         /* ── Full-Bleed Image Card (Maximum Image Visibility / Zero Gray Area) ── */
         <div
           className="relative w-full overflow-hidden cursor-pointer bg-black/50"
-          onClick={onComment}
+          onClick={onOpenPost}
         >
           {/* Natural Height Image */}
           <AnimatePresence mode="wait">
@@ -555,7 +555,7 @@ function PlaceCard({
               <h3
                 onClick={(e) => {
                   e.stopPropagation();
-                  onComment();
+                  onOpenPost();
                 }}
                 className="pointer-events-auto text-white font-bold text-sm leading-snug line-clamp-1 drop-shadow-md hover:text-primary transition-colors cursor-pointer"
                 title={placeName}
@@ -574,7 +574,7 @@ function PlaceCard({
               <p
                 onClick={(e) => {
                   e.stopPropagation();
-                  onComment();
+                  onOpenPost();
                 }}
                 className="pointer-events-auto text-white/80 text-[11px] leading-snug line-clamp-1 drop-shadow mt-0.5 cursor-pointer hover:text-white"
               >
@@ -695,7 +695,10 @@ function PlaceCard({
         </div>
       ) : (
         /* ── Text-only Fallback Card (when no photo exists) ── */
-        <div className="p-3.5 space-y-2 bg-[#111317]">
+        <div
+          onClick={onOpenPost}
+          className="p-3.5 space-y-2 bg-[#111317] cursor-pointer"
+        >
           <div className="flex items-center justify-between gap-1.5 mb-1">
             <div
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border"
@@ -718,7 +721,10 @@ function PlaceCard({
 
           {placeName && (
             <h3
-              onClick={onComment}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPost();
+              }}
               className="text-white font-bold text-sm leading-snug line-clamp-1 cursor-pointer hover:text-primary transition-colors"
             >
               {placeName}
@@ -734,7 +740,10 @@ function PlaceCard({
 
           {post.content && (
             <p
-              onClick={onComment}
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenPost();
+              }}
               className="text-white/70 text-xs leading-relaxed line-clamp-3 cursor-pointer hover:text-white/90"
             >
               {post.content}
@@ -884,168 +893,5 @@ function Empty({
         <Plus size={15} strokeWidth={3} /> Suggest a Place
       </button>
     </motion.div>
-  );
-}
-
-// ─── Comment Drawer ───────────────────────────────────────────────────────────
-function CommentDrawer({
-  post,
-  onClose,
-  onViewAuthor,
-}: {
-  post: any;
-  onClose: () => void;
-  onViewAuthor: (userId: number) => void;
-}) {
-  const [comments, setComments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
-  const { toast } = useToast();
-  const placeName = decodeName(post.location) || "this place";
-
-  useEffect(() => {
-    authFetch(`/api/posts/${post.id}/comments`)
-      .then((r) => r.json())
-      .then((d) => {
-        setComments(Array.isArray(d) ? d : []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [post.id]);
-
-  const send = async () => {
-    if (!text.trim() || sending) return;
-    if (!getToken()) {
-      toast({
-        title: "Sign in required",
-        description: "Join or log in to MotoHippi to post community tips!",
-      });
-      return;
-    }
-    setSending(true);
-    try {
-      const res = await authFetch(`/api/posts/${post.id}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ content: text.trim() }),
-      });
-      if (res.ok) {
-        const c = await res.json();
-        setComments((p) => [c, ...p]);
-        setText("");
-      }
-    } catch {
-      /* network error — silently ignore */
-    } finally {
-      setSending(false);
-    }
-  };
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 28, stiffness: 260 }}
-        className="fixed bottom-0 left-0 right-0 sm:max-w-lg sm:mx-auto z-[70] bg-[#0d0f10] border-t border-white/10 rounded-t-3xl max-h-[75vh] flex flex-col"
-      >
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
-        </div>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/6 shrink-0">
-          <div>
-            <h3 className="text-sm font-black text-white">Community Tips</h3>
-            <p className="text-[10px] text-muted-foreground">{placeName}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
-              ))}
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
-              <MessageCircle size={26} className="opacity-25" />
-              <p className="text-sm">No tips yet — be the first!</p>
-            </div>
-          ) : (
-            comments.map((c) => (
-              <div key={c.id} className="flex gap-3">
-                <Avatar
-                  onClick={() => {
-                    const authorId = c.author?.id || c.userId;
-                    if (authorId) onViewAuthor(authorId);
-                  }}
-                  className="w-8 h-8 shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
-                  title="View rider profile"
-                >
-                  <AvatarImage src={c.author?.avatarUrl} />
-                  <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                    {c.author?.name?.charAt(0) ?? "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 bg-white/4 rounded-2xl px-3 py-2.5">
-                  <div className="flex items-baseline gap-2 mb-0.5">
-                    <p
-                      onClick={() => {
-                        const authorId = c.author?.id || c.userId;
-                        if (authorId) onViewAuthor(authorId);
-                      }}
-                      className="text-xs font-black text-white hover:text-primary transition-colors cursor-pointer"
-                    >
-                      {c.author?.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {timeAgo(c.createdAt)}
-                    </p>
-                  </div>
-                  <p className="text-sm text-white/80 leading-relaxed">
-                    {c.content}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="px-4 py-3 border-t border-white/6 flex gap-2 shrink-0 bg-[#0d0f10] pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="Add a tip or ask something…"
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-white/6 border border-white/10 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-primary/40"
-          />
-          <button
-            onClick={send}
-            disabled={!text.trim() || sending}
-            className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-black disabled:opacity-40 shrink-0 cursor-pointer"
-          >
-            {sending ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <Send size={14} />
-            )}
-          </button>
-        </div>
-      </motion.div>
-    </>
   );
 }

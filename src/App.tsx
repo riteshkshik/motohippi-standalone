@@ -26,6 +26,7 @@ import Onboarding from '@/pages/Onboarding';
 import Home from '@/pages/Home';
 import Discover from '@/pages/Discover';
 import Feed from '@/pages/Feed';
+import PostDetail from '@/pages/PostDetail';
 
 import Marketplace from '@/pages/Marketplace';
 import Insurance from '@/pages/Insurance';
@@ -93,6 +94,8 @@ function Router() {
         <Route path="/discover" component={Discover} />
         <Route path="/groups">{() => <Redirect to="/messages" />}</Route>
         <Route path="/feed" component={Feed} />
+        <Route path="/feed/:postId" component={PostDetail} />
+        <Route path="/post/:postId" component={PostDetail} />
         <Route path="/marketplace" component={Marketplace} />
         <Route path="/insurance" component={Insurance} />
         <Route path="/messages" component={Messages} />
