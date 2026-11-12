@@ -7,6 +7,7 @@ import {
   Compass,
   Users,
   ShoppingBag,
+  ShoppingCart,
   Shield,
   MessageSquare,
   User,
@@ -598,15 +599,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
             <div className="flex items-center gap-1">
-              <Link href="/marketplace" title="Marketplace">
+              <Link href="/cart" title="Cart">
                 <button
+                  type="button"
+                  aria-label="Cart"
                   className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-colors ${
-                    isActive("/marketplace")
+                    isActive("/cart")
                       ? "text-[#b6fa0f]"
                       : "text-muted-foreground hover:text-white"
                   }`}
                 >
-                  <ShoppingBag size={20} />
+                  <ShoppingCart size={20} />
+                  {cartCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-[#b6fa0f] text-black text-[9px] font-black flex items-center justify-center shadow-md">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
                 </button>
               </Link>
               <Link href="/profile">
