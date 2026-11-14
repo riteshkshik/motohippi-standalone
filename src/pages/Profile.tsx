@@ -807,19 +807,37 @@ export default function Profile() {
             </div>
 
             <div className="flex-1 pb-1">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight flex items-center gap-2.5">
-                {profile.name}
-                {profile.isVerified && <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-[10px]">✓ Verified</Badge>}
-              </h1>
-              <p className="text-muted-foreground text-xs sm:text-sm font-medium mt-0.5 flex items-center gap-2 flex-wrap">
-                <span className="text-primary/80">@{username}</span>
-                {profile.city && (
-                  <><span className="text-white/20">·</span><span className="flex items-center gap-1"><MapPin size={13} className="text-primary" />{profile.city}</span></>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-[#0F1115] flex items-center gap-2.5 flex-wrap">
+                <span>{profile.name}</span>
+                {profile.isVerified && (
+                  <Badge className="bg-[#111317] text-sky-400 border border-black/20 text-[10px] font-bold shadow-sm">
+                    ✓ Verified
+                  </Badge>
                 )}
-                {profile.country && <><span className="text-white/20">·</span><Globe size={13} className="text-primary/60" /><span>{profile.country}</span></>}
+              </h1>
+              <p className="text-black/75 text-xs sm:text-sm font-semibold mt-1 flex items-center gap-2 flex-wrap">
+                <span className="text-[#0F1115] font-bold">@{username}</span>
+                {profile.city && (
+                  <>
+                    <span className="text-black/30">·</span>
+                    <span className="flex items-center gap-1 text-[#0F1115]">
+                      <MapPin size={13} className="text-[#0F1115]" />
+                      {profile.city}
+                    </span>
+                  </>
+                )}
+                {profile.country && (
+                  <>
+                    <span className="text-black/30">·</span>
+                    <span className="flex items-center gap-1 text-[#0F1115]">
+                      <Globe size={13} className="text-black/70" />
+                      <span>{profile.country}</span>
+                    </span>
+                  </>
+                )}
               </p>
               {profile.bio && (
-                <p className="text-xs sm:text-sm text-white/70 mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
+                <p className="text-xs sm:text-sm text-black/80 font-medium mt-1.5 max-w-lg leading-relaxed">{profile.bio}</p>
               )}
             </div>
 
@@ -828,10 +846,10 @@ export default function Profile() {
               <button
                 onClick={toggleHideProfile}
                 disabled={savingPrivacy}
-                className={`flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-sm ${
                   profile.hideProfileDetails
-                    ? "bg-amber-400/10 border-amber-400/30 text-amber-400 hover:bg-amber-400/20"
-                    : "bg-white/5 border-white/15 text-white/80 hover:bg-white/10 hover:text-white"
+                    ? "bg-[#111317] border-black/20 text-amber-400 hover:bg-[#1a1d24]"
+                    : "bg-[#111317] border-black/20 text-white hover:bg-[#1a1d24]"
                 }`}
                 title="Toggle whether your profile details are hidden from other riders"
               >
@@ -842,20 +860,21 @@ export default function Profile() {
                   </>
                 ) : (
                   <>
-                    <Eye size={14} className="text-muted-foreground" />
+                    <Eye size={14} className="text-zinc-300" />
                     <span>Details Public</span>
                   </>
                 )}
               </button>
               <button
                 onClick={() => setShowEdit(true)}
-                className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 text-xs sm:text-sm font-bold transition-all"
+                className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-black/20 bg-[#111317] text-white hover:bg-[#1a1d24] text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer"
               >
-                <Edit3 size={14} /> Edit Profile
+                <Edit3 size={14} className="text-[#b6fa0f]" /> Edit Profile
               </button>
               <button
                 onClick={() => setShowShare(true)}
-                className="h-9 w-9 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 hover:border-primary/40 flex items-center justify-center transition-all"
+                className="h-9 w-9 rounded-full border border-black/20 bg-[#111317] text-white hover:bg-[#1a1d24] flex items-center justify-center transition-all shadow-sm cursor-pointer"
+                aria-label="Share profile"
               >
                 <Share2 size={15} />
               </button>
@@ -866,9 +885,9 @@ export default function Profile() {
           <div className="grid md:grid-cols-3 gap-3.5 md:gap-8">
             {/* Left: Info card */}
             <div className="space-y-4 md:space-y-6">
-              <div className="glass-card p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+              <div className="bg-[#111317] border border-white/10 rounded-2xl shadow-xl p-3.5 sm:p-5 space-y-3 sm:space-y-4">
                 {/* Stats row */}
-                <div className="grid grid-cols-3 divide-x divide-white/8">
+                <div className="grid grid-cols-3 divide-x divide-white/10">
                   {[
                     { value: profile.followersCount ?? 0, label: 'Followers' },
                     { value: profile.followingCount ?? 0, label: 'Following' },
@@ -880,15 +899,15 @@ export default function Profile() {
                           ? `${(value / 1000).toFixed(1)}k`
                           : value}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mt-0.5">{label}</span>
+                      <span className="text-[9px] sm:text-[10px] text-zinc-400 uppercase tracking-widest font-semibold mt-0.5">{label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="border-t border-white/5 pt-3 sm:pt-4 space-y-2.5 sm:space-y-3">
+                <div className="border-t border-white/10 pt-3 sm:pt-4 space-y-2.5 sm:space-y-3">
                   {/* Details */}
                   <div className="space-y-1.5">
-                    <h3 className="font-bold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-widest">Rider Details</h3>
+                    <h3 className="font-bold text-[11px] sm:text-xs text-zinc-400 uppercase tracking-widest">Rider Details</h3>
                     {[
                       { label: 'Travel Style', value: profile.travelStyle || 'Solo Rider' },
                       ...(profile.vehicleType ? [{ label: 'Vehicle', value: profile.vehicleType }] : []),
@@ -896,8 +915,8 @@ export default function Profile() {
                       { label: 'Member since', value: new Date(profile.createdAt || Date.now()).getFullYear().toString() },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex justify-between items-center text-xs sm:text-sm py-0.5">
-                        <span className="text-muted-foreground">{label}</span>
-                        <Badge variant="outline" className="border-white/10 uppercase text-[9px] sm:text-[10px] font-bold px-2 py-0.5">{value}</Badge>
+                        <span className="text-zinc-300">{label}</span>
+                        <Badge variant="outline" className="border-white/15 bg-white/5 text-white uppercase text-[9px] sm:text-[10px] font-bold px-2 py-0.5">{value}</Badge>
                       </div>
                     ))}
                   </div>
@@ -905,10 +924,10 @@ export default function Profile() {
                   {/* Interests */}
                   {profile.interests && profile.interests.length > 0 && (
                     <div className="space-y-1.5">
-                      <h3 className="font-bold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-widest">Interests</h3>
+                      <h3 className="font-bold text-[11px] sm:text-xs text-zinc-400 uppercase tracking-widest">Interests</h3>
                       <div className="flex flex-wrap gap-1.5">
                         {profile.interests.map((interest: string) => (
-                          <span key={interest} className="px-2.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold rounded-full">{interest}</span>
+                          <span key={interest} className="px-2.5 py-0.5 bg-[#b6fa0f]/15 border border-[#b6fa0f]/30 text-[#b6fa0f] text-[10px] font-bold rounded-full">{interest}</span>
                         ))}
                       </div>
                     </div>
@@ -917,10 +936,10 @@ export default function Profile() {
                   {/* Edit nudge */}
                   <button
                     onClick={() => setShowEdit(true)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/4 border border-white/8 hover:border-primary/30 hover:bg-white/6 transition-all group"
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/8 border border-white/15 hover:border-[#b6fa0f]/40 hover:bg-white/12 transition-all group cursor-pointer"
                   >
-                    <span className="text-xs font-semibold text-muted-foreground group-hover:text-white transition-colors">Complete your profile</span>
-                    <ChevronRight size={13} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-xs font-semibold text-zinc-200 group-hover:text-white transition-colors">Complete your profile</span>
+                    <ChevronRight size={13} className="text-zinc-300 group-hover:text-[#b6fa0f] transition-colors" />
                   </button>
                 </div>
               </div>
@@ -1002,17 +1021,17 @@ function PostsGrid({ profile }: { profile: any }) {
   return (
     <div className="w-full">
       {/* Header row */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3 sm:pb-4 sm:mb-5">
+      <div className="flex items-center justify-between border-b border-black/15 pb-2.5 mb-3 sm:pb-4 sm:mb-5">
         <div className="flex items-center gap-2">
-          <Grid3x3 size={17} className="text-primary" />
-          <span className="font-black text-sm sm:text-base">Posts</span>
+          <Grid3x3 size={17} className="text-[#0F1115]" />
+          <span className="font-black text-sm sm:text-base text-[#0F1115]">Posts</span>
           {myPosts.length > 0 && (
-            <span className="text-xs text-muted-foreground font-medium ml-1">({myPosts.length})</span>
+            <span className="text-xs text-black/70 font-bold ml-1">({myPosts.length})</span>
           )}
         </div>
         <button
           onClick={e => { e.stopPropagation(); setCreateOpen(true); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-primary text-black text-xs font-black hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[#111317] text-[#b6fa0f] text-xs font-black hover:bg-[#1a1d24] transition-colors shadow-sm cursor-pointer"
         >
           <Plus size={14} /> New Post
         </button>
@@ -1021,20 +1040,20 @@ function PostsGrid({ profile }: { profile: any }) {
       {/* Grid */}
       {postsLoading ? (
         <div className="grid grid-cols-3 gap-1.5">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
+          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="aspect-square rounded-xl bg-black/10" />)}
         </div>
       ) : myPosts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-          <div className="w-16 h-16 rounded-full bg-white/4 border border-white/10 flex items-center justify-center">
-            <ImagePlus size={26} className="text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-14 px-6 gap-4 text-center rounded-3xl bg-[#111317] border border-white/10 shadow-xl">
+          <div className="w-16 h-16 rounded-full bg-white/8 border border-white/15 flex items-center justify-center">
+            <ImagePlus size={26} className="text-[#b6fa0f]" />
           </div>
           <div>
             <p className="font-black text-white mb-1">Share your first ride</p>
-            <p className="text-sm text-muted-foreground max-w-xs">Your posts will appear here. Share your rides, routes, and adventures.</p>
+            <p className="text-sm text-zinc-400 max-w-xs">Your posts will appear here. Share your rides, routes, and adventures.</p>
           </div>
           <button
             onClick={() => setCreateOpen(true)}
-            className="px-5 py-2.5 rounded-full bg-primary text-black font-black text-sm hover:bg-primary/90 transition-colors"
+            className="px-5 py-2.5 rounded-full bg-[#b6fa0f] text-black font-black text-sm hover:bg-[#c8ff3d] transition-colors cursor-pointer"
           >
             Create Post
           </button>

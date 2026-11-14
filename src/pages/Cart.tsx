@@ -37,28 +37,28 @@ function EmptyCart() {
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-28 text-center gap-6"
+      className="flex flex-col items-center justify-center py-20 md:py-28 text-center gap-6"
     >
       <div className="relative">
-        <div className="w-28 h-28 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-          <ShoppingBag size={48} className="text-muted-foreground" />
+        <div className="w-28 h-28 rounded-full bg-[#111317] border border-black/20 flex items-center justify-center shadow-xl">
+          <ShoppingBag size={46} className="text-[#b6fa0f]" />
         </div>
-        <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-black text-sm">0</div>
+        <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-[#b6fa0f] border-2 border-[#FFDB58] flex items-center justify-center text-black font-black text-sm shadow">0</div>
       </div>
       <div>
-        <h2 className="text-2xl font-black text-white mb-2">Your cart is empty</h2>
-        <p className="text-muted-foreground max-w-sm">
+        <h2 className="text-2xl sm:text-3xl font-black text-[#0F1115] mb-2">Your cart is empty</h2>
+        <p className="text-black/75 font-medium max-w-sm text-sm sm:text-base">
           Looks like you haven't added any gear yet. Explore the shop and find your perfect ride essentials.
         </p>
       </div>
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs sm:max-w-none justify-center">
         <Link href="/marketplace">
-          <button className="px-8 py-3 rounded-2xl bg-primary text-black font-black text-base hover:bg-primary/90 transition-all hover:scale-[1.02] flex items-center gap-2">
+          <button className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-[#111317] text-[#b6fa0f] font-black text-base hover:bg-[#1a1d24] transition-all hover:scale-[1.02] flex items-center justify-center gap-2 shadow-lg cursor-pointer">
             <ShoppingBag size={18} /> Shop Now
           </button>
         </Link>
         <Link href="/home">
-          <button className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-semibold text-base hover:bg-white/10 transition-all">
+          <button className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-black/10 border border-black/20 text-[#0F1115] font-bold text-base hover:bg-black/15 transition-all cursor-pointer">
             Go Home
           </button>
         </Link>
@@ -67,7 +67,7 @@ function EmptyCart() {
       <div className="flex flex-wrap justify-center gap-2 mt-2">
         {['SENA', 'Action Cam', 'Drone'].map(cat => (
           <Link key={cat} href="/marketplace">
-            <span className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-muted-foreground hover:text-white hover:border-primary/40 transition-all cursor-pointer">{cat}</span>
+            <span className="px-4 py-1.5 rounded-full bg-black/10 border border-black/15 text-xs font-bold text-[#0F1115] hover:bg-[#111317] hover:text-white transition-all cursor-pointer">{cat}</span>
           </Link>
         ))}
       </div>
@@ -110,15 +110,15 @@ function CartItem({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: removing ? 0 : 1, x: removing ? -40 : 0 }}
       transition={{ delay: index * 0.05 }}
-      className="flex gap-4 p-4 md:p-5 rounded-2xl bg-card/40 border border-white/8 backdrop-blur-sm hover:border-white/15 transition-colors"
+      className="flex gap-4 p-4 md:p-5 rounded-2xl bg-[#111317] border border-white/10 shadow-xl hover:border-white/20 transition-colors"
     >
       {/* Image */}
       <div className="relative shrink-0">
-        <div className="w-24 h-24 md:w-28 md:h-28 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center overflow-hidden">
+        <div className="w-24 h-24 md:w-28 md:h-28 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
           {product.imageUrl ? (
             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain p-2" />
           ) : (
-            <ShoppingBag size={32} className="text-muted-foreground/40" />
+            <ShoppingBag size={32} className="text-zinc-500" />
           )}
         </div>
         {discount > 0 && (
@@ -132,10 +132,10 @@ function CartItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-0.5">{product.brand || product.category}</p>
+            <p className="text-[11px] text-zinc-400 uppercase tracking-wider mb-0.5">{product.brand || product.category}</p>
             <h3 className="font-bold text-white text-sm md:text-base line-clamp-2 leading-snug">{product.name}</h3>
           </div>
-          <button onClick={handleRemove} className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
+          <button onClick={handleRemove} className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer">
             <Trash2 size={16} />
           </button>
         </div>
@@ -144,7 +144,7 @@ function CartItem({
         {product.rating && (
           <div className="flex items-center gap-1 mt-1">
             <Star size={11} className="text-amber-400 fill-amber-400" />
-            <span className="text-xs text-muted-foreground">{product.rating}</span>
+            <span className="text-xs text-zinc-300">{product.rating}</span>
           </div>
         )}
 
@@ -162,14 +162,14 @@ function CartItem({
             <div className="flex items-baseline gap-2">
               <span className="text-lg md:text-xl font-black text-white">{fmt(product.price * quantity)}</span>
               {savings > 0 && quantity > 0 && (
-                <span className="text-xs text-muted-foreground line-through">{fmt((product.originalPrice! * quantity))}</span>
+                <span className="text-xs text-zinc-400 line-through">{fmt((product.originalPrice! * quantity))}</span>
               )}
             </div>
             {savings > 0 && (
               <p className="text-xs text-green-400 font-semibold">You save {fmt(savings * quantity)}</p>
             )}
             {quantity > 1 && (
-              <p className="text-[11px] text-muted-foreground">{fmt(product.price)} each</p>
+              <p className="text-[11px] text-zinc-400">{fmt(product.price)} each</p>
             )}
           </div>
 
@@ -178,17 +178,17 @@ function CartItem({
             <button
               onClick={() => onQtyChange(Math.max(1, quantity - 1))}
               disabled={quantity <= 1}
-              className="w-8 h-8 rounded-l-xl bg-white/8 border border-white/10 flex items-center justify-center text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-8 h-8 rounded-l-xl bg-white/8 border border-white/15 flex items-center justify-center text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <Minus size={13} />
             </button>
-            <div className="w-10 h-8 bg-white/5 border-y border-white/10 flex items-center justify-center text-sm font-bold text-white">
+            <div className="w-10 h-8 bg-white/5 border-y border-white/15 flex items-center justify-center text-sm font-bold text-white">
               {quantity}
             </div>
             <button
               onClick={() => onQtyChange(Math.min(10, quantity + 1))}
               disabled={quantity >= 10}
-              className="w-8 h-8 rounded-r-xl bg-white/8 border border-white/10 flex items-center justify-center text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="w-8 h-8 rounded-r-xl bg-white/8 border border-white/15 flex items-center justify-center text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <Plus size={13} />
             </button>
@@ -198,15 +198,15 @@ function CartItem({
         {/* Move to wishlist */}
         <button
           onClick={() => setWishlisted(w => !w)}
-          className={`mt-3 flex items-center gap-1.5 text-xs font-semibold transition-colors ${wishlisted ? 'text-red-400' : 'text-muted-foreground hover:text-white'}`}
+          className={`mt-3 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer ${wishlisted ? 'text-red-400' : 'text-zinc-400 hover:text-white'}`}
         >
           <Heart size={12} className={wishlisted ? 'fill-red-400' : ''} />
           {wishlisted ? 'Wishlisted' : 'Move to Wishlist'}
         </button>
 
         {/* Delivery estimate */}
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Truck size={11} className="text-primary shrink-0" />
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-zinc-400">
+          <Truck size={11} className="text-[#b6fa0f] shrink-0" />
           Delivery by <span className="text-white font-semibold ml-0.5">
             {new Date(Date.now() + 5 * 86400000).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
           </span>
@@ -324,7 +324,7 @@ export default function CartPage() {
   // ── Order placed screen ──────────────────────────────────────────────────────
   if (orderPlaced) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center gap-6">
+      <div className="min-h-screen bg-[#070A0F] flex flex-col items-center justify-center p-6 text-center gap-6">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
           <div className="w-28 h-28 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto">
             <CheckCircle2 size={56} className="text-primary" />
@@ -382,20 +382,20 @@ export default function CartPage() {
     <>
     <div className="min-h-screen bg-[#FFDB58] pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-0 z-20 bg-[#070A0F]/95 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-14 flex items-center gap-4">
           <Link href="/marketplace">
-            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-white transition-colors text-sm">
+            <button className="flex items-center gap-1.5 text-zinc-300 hover:text-white transition-colors text-sm font-semibold cursor-pointer">
               <ArrowLeft size={16} /> Shop
             </button>
           </Link>
-          <div className="h-4 w-px bg-white/10" />
+          <div className="h-4 w-px bg-white/15" />
           <h1 className="font-black text-white text-lg">My Cart</h1>
           <div className="ml-auto flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary text-xs font-black">
+            <div className="w-6 h-6 rounded-full bg-[#b6fa0f]/20 border border-[#b6fa0f]/40 flex items-center justify-center text-[#b6fa0f] text-xs font-black">
               {items.length}
             </div>
-            <span className="text-muted-foreground text-sm hidden sm:block">item{items.length !== 1 ? 's' : ''}</span>
+            <span className="text-zinc-300 text-sm hidden sm:block">item{items.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
       </div>
@@ -403,7 +403,7 @@ export default function CartPage() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-36 rounded-2xl" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-36 rounded-2xl bg-black/15" />)}
           </div>
         ) : items.length === 0 ? (
           <EmptyCart />
@@ -412,10 +412,10 @@ export default function CartPage() {
             {/* ── Left: items ── */}
             <div className="space-y-4">
               {/* Delivery banner */}
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold ${
+              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold bg-[#111317] shadow-md ${
                 subtotal > 2000
-                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                  ? 'border-emerald-500/40 text-emerald-400'
+                  : 'border-amber-400/40 text-amber-300'
               }`}>
                 <Truck size={16} />
                 {subtotal > 2000
@@ -440,18 +440,18 @@ export default function CartPage() {
               </div>
 
               {/* Coupon section */}
-              <div className="rounded-2xl bg-card/40 border border-white/8 backdrop-blur-sm p-5">
+              <div className="rounded-2xl bg-[#111317] border border-white/10 shadow-xl p-5">
                 <h3 className="font-bold text-white flex items-center gap-2 mb-4">
-                  <Tag size={16} className="text-primary" /> Apply Coupon
+                  <Tag size={16} className="text-[#b6fa0f]" /> Apply Coupon
                 </h3>
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={16} className="text-green-400" />
                       <span className="text-green-400 font-bold text-sm">{appliedCoupon}</span>
-                      <span className="text-muted-foreground text-xs">— {COUPONS[appliedCoupon]}% off applied</span>
+                      <span className="text-zinc-300 text-xs">— {COUPONS[appliedCoupon]}% off applied</span>
                     </div>
-                    <button onClick={() => { setAppliedCoupon(''); setCouponSuccess(''); }} className="text-xs text-muted-foreground hover:text-red-400 transition-colors font-semibold">Remove</button>
+                    <button onClick={() => { setAppliedCoupon(''); setCouponSuccess(''); }} className="text-xs text-zinc-400 hover:text-red-400 transition-colors font-semibold cursor-pointer">Remove</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -461,9 +461,9 @@ export default function CartPage() {
                         onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
                         onKeyDown={e => e.key === 'Enter' && handleCoupon()}
                         placeholder="Enter coupon code"
-                        className="flex-1 h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-all uppercase tracking-widest font-semibold"
+                        className="flex-1 h-11 bg-white/5 border border-white/15 rounded-xl px-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#b6fa0f]/60 transition-all uppercase tracking-widest font-semibold"
                       />
-                      <button onClick={handleCoupon} className="px-5 h-11 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-bold hover:bg-primary/20 transition-all">
+                      <button onClick={handleCoupon} className="px-5 h-11 rounded-xl bg-[#b6fa0f]/15 border border-[#b6fa0f]/40 text-[#b6fa0f] text-sm font-bold hover:bg-[#b6fa0f]/25 transition-all cursor-pointer">
                         Apply
                       </button>
                     </div>
@@ -471,7 +471,7 @@ export default function CartPage() {
                     {couponSuccess && <p className="text-green-400 text-xs font-semibold px-1">{couponSuccess}</p>}
                     <div className="flex flex-wrap gap-2 mt-2">
                       {Object.entries(COUPONS).map(([code, pct]) => (
-                        <button key={code} onClick={() => { setCouponInput(code); setCouponError(''); }} className="px-3 py-1 rounded-full border border-dashed border-primary/30 text-primary text-[11px] font-bold hover:bg-primary/10 transition-all">
+                        <button key={code} onClick={() => { setCouponInput(code); setCouponError(''); }} className="px-3 py-1 rounded-full border border-dashed border-[#b6fa0f]/40 text-[#b6fa0f] text-[11px] font-bold hover:bg-[#b6fa0f]/15 transition-all cursor-pointer">
                           {code} ({pct}% off)
                         </button>
                       ))}
@@ -483,11 +483,11 @@ export default function CartPage() {
               {/* Trust badges (desktop hidden, shown mobile) */}
               <div className="grid grid-cols-2 gap-3 lg:hidden">
                 {TRUST_BADGES.map(b => (
-                  <div key={b.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/6">
-                    <b.icon size={18} className="text-primary shrink-0" />
+                  <div key={b.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#111317] border border-white/10 shadow-md">
+                    <b.icon size={18} className="text-[#b6fa0f] shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-white">{b.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{b.sub}</p>
+                      <p className="text-[10px] text-zinc-400">{b.sub}</p>
                     </div>
                   </div>
                 ))}
@@ -497,48 +497,48 @@ export default function CartPage() {
             {/* ── Right: order summary ── */}
             <div className="space-y-4">
               {/* Price details */}
-              <div className="rounded-2xl bg-card/40 border border-white/8 backdrop-blur-sm p-5 sticky top-20">
+              <div className="rounded-2xl bg-[#111317] border border-white/10 shadow-xl p-5 sticky top-20">
                 <h3 className="font-black text-white text-base mb-5 flex items-center gap-2">
-                  <Zap size={16} className="text-primary" />
+                  <Zap size={16} className="text-[#b6fa0f]" />
                   Price Details
-                  <span className="ml-auto text-xs text-muted-foreground font-normal">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                  <span className="ml-auto text-xs text-zinc-400 font-normal">{items.length} item{items.length !== 1 ? 's' : ''}</span>
                 </h3>
 
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">MRP Total</span>
+                    <span className="text-zinc-400">MRP Total</span>
                     <span className="text-white font-semibold">{fmt(mrp)}</span>
                   </div>
                   {itemDiscount > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Item Discount</span>
+                      <span className="text-zinc-400">Item Discount</span>
                       <span className="text-green-400 font-semibold">-{fmt(itemDiscount)}</span>
                     </div>
                   )}
                   {couponAmt > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Coupon ({appliedCoupon})</span>
+                      <span className="text-zinc-400">Coupon ({appliedCoupon})</span>
                       <span className="text-green-400 font-semibold">-{fmt(couponAmt)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
+                    <span className="text-zinc-400 flex items-center gap-1">
                       Delivery Charges
                       {delivery === 0 && <span className="ml-1 text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-bold">FREE</span>}
                     </span>
                     {delivery === 0
-                      ? <span className="text-green-400 font-semibold line-through text-muted-foreground/60">₹99</span>
+                      ? <span className="text-green-400 font-semibold line-through opacity-75">₹99</span>
                       : <span className="text-white font-semibold">{fmt(delivery)}</span>
                     }
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      Platform Fee <Info size={11} className="text-muted-foreground/50" />
+                    <span className="text-zinc-400 flex items-center gap-1">
+                      Platform Fee <Info size={11} className="text-zinc-500" />
                     </span>
                     <span className="text-white font-semibold">{fmt(platformFee)}</span>
                   </div>
 
-                  <div className="h-px bg-white/8 my-1" />
+                  <div className="h-px bg-white/10 my-1" />
 
                   <div className="flex justify-between">
                     <span className="font-black text-white text-base">Total Amount</span>
@@ -559,7 +559,7 @@ export default function CartPage() {
                 <button
                   onClick={handlePlaceOrder}
                   disabled={placing}
-                  className="mt-6 w-full h-14 rounded-2xl bg-[#D6FF2F] hover:bg-[#c8f020] disabled:opacity-70 text-black font-black text-base flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_30px_rgba(214,255,47,0.2)]"
+                  className="mt-6 w-full h-14 rounded-2xl bg-[#D6FF2F] hover:bg-[#c8f020] disabled:opacity-70 text-black font-black text-base flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_30px_rgba(214,255,47,0.2)] cursor-pointer"
                 >
                   {placing ? (
                     <>
@@ -579,15 +579,15 @@ export default function CartPage() {
                 </button>
 
                 {/* Secure payment */}
-                <p className="text-center text-[11px] text-muted-foreground mt-3 flex items-center justify-center gap-1.5">
-                  <Shield size={11} className="text-primary" />
+                <p className="text-center text-[11px] text-zinc-400 mt-3 flex items-center justify-center gap-1.5">
+                  <Shield size={11} className="text-[#b6fa0f]" />
                   Secured by 256-bit SSL encryption
                 </p>
 
                 {/* Payment icons */}
                 <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
                   {['Visa', 'Mastercard', 'UPI', 'GPay', 'PhonePe', 'NetBanking'].map(p => (
-                    <span key={p} className="px-2 py-1 rounded border border-white/10 text-[10px] text-muted-foreground font-semibold bg-white/3">
+                    <span key={p} className="px-2 py-1 rounded border border-white/15 text-[10px] text-zinc-300 font-semibold bg-white/5">
                       {p}
                     </span>
                   ))}
@@ -597,11 +597,11 @@ export default function CartPage() {
               {/* Trust badges (desktop) */}
               <div className="hidden lg:grid grid-cols-1 gap-2">
                 {TRUST_BADGES.map(b => (
-                  <div key={b.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/6">
-                    <b.icon size={17} className="text-primary shrink-0" />
+                  <div key={b.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#111317] border border-white/10 shadow-md">
+                    <b.icon size={17} className="text-[#b6fa0f] shrink-0" />
                     <div>
                       <p className="text-xs font-bold text-white">{b.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{b.sub}</p>
+                      <p className="text-[10px] text-zinc-400">{b.sub}</p>
                     </div>
                   </div>
                 ))}
