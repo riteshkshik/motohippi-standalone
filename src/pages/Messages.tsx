@@ -31,7 +31,13 @@ import {
 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+  animate,
+} from "framer-motion";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -1212,11 +1218,23 @@ function SwipeableMessageRow({
   align?: "left" | "right";
 }) {
   const isRight = align === "right";
-  const [dragOffset, setDragOffset] = useState(0);
+  const x = useMotionValue(0);
   const [isPastThreshold, setIsPastThreshold] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const longPressTimerRef = useRef<any>(null);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Smooth GPU-driven reply icon opacity & scale directly from x offset
+  const iconOpacity = useTransform(
+    x,
+    isRight ? [-40, -10, 0] : [0, 10, 40],
+    [1, 0.4, 0]
+  );
+  const iconScale = useTransform(
+    x,
+    isRight ? [-40, -10, 0] : [0, 10, 40],
+    [1.1, 0.85, 0.5]
+  );
 
   // Native mobile touch handlers for bulletproof swipe & long-press
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -1256,17 +1274,23 @@ function SwipeableMessageRow({
 
   const handleDrag = (_: any, info: { offset: { x: number } }) => {
     const ox = info.offset.x;
-    setDragOffset(ox);
     // Right-aligned bubble swipes left (negative x), Left-aligned bubble swipes right (positive x)
     const active = isRight ? ox < -32 : ox > 32;
-    setIsPastThreshold(active);
+    setIsPastThreshold((prev) => (prev !== active ? active : prev));
   };
 
   const handleDragEnd = (_: any, info: { offset: { x: number } }) => {
     const ox = info.offset.x;
     const triggered = isRight ? ox < -32 : ox > 32;
-    setDragOffset(0);
     setIsPastThreshold(false);
+
+    // Guaranteed imperative snap-back to origin x=0
+    animate(x, 0, {
+      type: "spring",
+      stiffness: 600,
+      damping: 35,
+    });
+
     if (triggered) {
       if (typeof window !== "undefined" && navigator.vibrate) {
         navigator.vibrate(15);
@@ -1354,37 +1378,42 @@ function SwipeableMessageRow({
 
       {/* Message Bubble + Swipe Gesture Container */}
       <div className="relative max-w-[80%] md:max-w-[70%]">
-        {/* Background Reply Icon (ONLY visible when actively dragging past 8px) */}
-        <div
-          className={`absolute top-1/2 -translate-y-1/2 pointer-events-none transition-all duration-150 z-0 ${
-            isRight ? "-right-10" : "-left-10"
-          } ${
-            Math.abs(dragOffset) > 8
-              ? isPastThreshold
-                ? "opacity-100 scale-110 text-primary"
-                : "opacity-60 scale-95 text-zinc-400"
-              : "opacity-0 scale-75"
+        {/* Background Reply Icon (revealed behind the swiped bubble) */}
+        <motion.div
+          style={{
+            opacity: iconOpacity,
+            scale: iconScale,
+          }}
+          className={`absolute top-1/2 -translate-y-1/2 pointer-events-none z-0 ${
+            isRight ? "right-2" : "left-2"
           }`}
         >
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-md backdrop-blur-md ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center border shadow-md backdrop-blur-md transition-colors ${
               isPastThreshold
-                ? "bg-primary/20 border-primary text-primary"
+                ? "bg-primary/25 border-primary text-primary"
                 : "bg-white/10 border-white/20 text-white"
             }`}
           >
             <CornerUpLeft size={16} />
           </div>
-        </div>
+        </motion.div>
 
         {/* Swipeable Bubble Container */}
         <motion.div
+          style={{ x }}
           drag="x"
+          dragSnapToOrigin
+          dragMomentum={false}
           dragConstraints={{
-            left: isRight ? -75 : 0,
-            right: isRight ? 0 : 75,
+            left: isRight ? -80 : 0,
+            right: isRight ? 0 : 80,
           }}
           dragElastic={0.25}
+          dragTransition={{
+            bounceStiffness: 600,
+            bounceDamping: 35,
+          }}
           onDrag={handleDrag}
           onDragEnd={handleDragEnd}
           className="z-10 w-full touch-pan-y"
