@@ -16,11 +16,21 @@ import {
   Calendar,
   Sparkles,
   Trash2,
+  Pencil,
+  MoreVertical,
+  Check,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import {
   getCat,
   decodeName,
@@ -101,6 +111,11 @@ export default function PostDetail() {
 
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<any | null>(null);
+  const [deletingComment, setDeletingComment] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -287,6 +302,112 @@ export default function PostDetail() {
       });
     } finally {
       setSendingComment(false);
+    }
+  };
+
+  const handleStartEdit = (c: any) => {
+    setEditingCommentId(c.id);
+    setEditingText(c.content || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingText("");
+  };
+
+  const handleSaveEdit = async (commentId: number) => {
+    const trimmed = editingText.trim();
+    if (!trimmed) {
+      toast({
+        title: "Comment cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!post) return;
+
+    setSavingEdit(true);
+    try {
+      const res = await authFetch(`/api/posts/${post.id}/comments/${commentId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        queryClient.setQueryData<any[]>(
+          ["/api/posts", postId, "comments"],
+          (prev = []) =>
+            prev.map((c) =>
+              c.id === commentId ? { ...c, content: updated.content } : c
+            )
+        );
+        setEditingCommentId(null);
+        setEditingText("");
+        toast({ title: "Comment updated" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Could not update comment",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDeleteComment = async () => {
+    if (!commentToDelete || !post || deletingComment) return;
+    const commentId = commentToDelete.id;
+
+    setDeletingComment(true);
+    try {
+      const res = await authFetch(`/api/posts/${post.id}/comments/${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        queryClient.setQueryData<any[]>(
+          ["/api/posts", postId, "comments"],
+          (prev = []) => prev.filter((c) => c.id !== commentId)
+        );
+
+        queryClient.setQueryData<any>(["/api/posts", postId], (prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            commentsCount: Math.max(0, (prev.commentsCount ?? 1) - 1),
+          };
+        });
+
+        queryClient.invalidateQueries({ queryKey: ["/api/feed"] });
+
+        toast({ title: "Comment deleted" });
+        setCommentToDelete(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Could not delete comment",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach the server.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingComment(false);
     }
   };
 
@@ -732,6 +853,12 @@ export default function PostDetail() {
                 ) : (
                   comments.map((c: any) => {
                     const cAuthorId = c.author?.id || c.userId;
+                    const isMyComment = !!user?.id && cAuthorId === user.id;
+                    const isPostOwner = !!user?.id && post?.author?.id === user.id;
+                    const canEdit = isMyComment;
+                    const canDelete = isMyComment || isPostOwner;
+                    const isEditingThis = editingCommentId === c.id;
+
                     return (
                       <div key={c.id} className="flex gap-3">
                         <Avatar
@@ -745,20 +872,122 @@ export default function PostDetail() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-3.5 py-2.5">
-                          <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                            <p
-                              onClick={() => cAuthorId && setSelectedUserId(cAuthorId)}
-                              className="text-xs font-black text-white hover:text-primary transition-colors cursor-pointer truncate"
-                            >
-                              {c.author?.name || "Rider"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground shrink-0">
-                              {timeAgo(c.createdAt)}
-                            </p>
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p
+                                onClick={() => cAuthorId && setSelectedUserId(cAuthorId)}
+                                className="text-xs font-black text-white hover:text-primary transition-colors cursor-pointer truncate"
+                              >
+                                {c.author?.name || "Rider"}
+                              </p>
+                              {post?.author?.id && cAuthorId === post.author.id && (
+                                <span className="px-1.5 py-0.2 rounded-full bg-primary/15 text-primary text-[9px] font-bold border border-primary/25 shrink-0">
+                                  Author
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <p className="text-[10px] text-muted-foreground shrink-0">
+                                {timeAgo(c.createdAt)}
+                              </p>
+                              {!isEditingThis && (canEdit || canDelete) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="w-5 h-5 -mr-1 flex items-center justify-center rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                                      aria-label="Comment options"
+                                    >
+                                      <MoreVertical size={13} />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="w-32 bg-[#14171c]/95 border border-white/10 backdrop-blur-xl rounded-xl p-1 shadow-2xl z-[60]"
+                                  >
+                                    {canEdit && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleStartEdit(c)}
+                                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white/90 hover:text-white hover:bg-white/10 cursor-pointer focus:bg-white/10 focus:text-white"
+                                      >
+                                        <Pencil size={12} className="text-primary" />
+                                        <span>Edit</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDelete && (
+                                      <DropdownMenuItem
+                                        onClick={() => setCommentToDelete(c)}
+                                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10 focus:text-red-300"
+                                      >
+                                        <Trash2 size={12} />
+                                        <span>Delete</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap break-words">
-                            {c.content}
-                          </p>
+
+                          {isEditingThis ? (
+                            <div className="mt-1 space-y-2">
+                              <textarea
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSaveEdit(c.id);
+                                  } else if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    handleCancelEdit();
+                                  }
+                                }}
+                                rows={2}
+                                autoFocus
+                                disabled={savingEdit}
+                                placeholder="Edit your comment..."
+                                className="w-full rounded-xl bg-black/60 border border-white/20 focus:border-primary focus:outline-none p-2.5 text-xs text-white placeholder:text-muted-foreground transition-all resize-none"
+                              />
+                              <div className="flex items-center justify-between gap-2 pt-0.5">
+                                <span className="text-[10px] text-muted-foreground">
+                                  Press Enter to save, Esc to cancel
+                                </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <button
+                                    type="button"
+                                    disabled={savingEdit}
+                                    onClick={handleCancelEdit}
+                                    className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 text-[11px] font-semibold transition-all cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={!editingText.trim() || savingEdit}
+                                    onClick={() => handleSaveEdit(c.id)}
+                                    className="px-3 py-1 rounded-lg bg-primary text-black font-black text-[11px] hover:bg-primary/90 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                  >
+                                    {savingEdit ? (
+                                      <>
+                                        <Loader2 size={11} className="animate-spin" />
+                                        <span>Saving...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check size={11} />
+                                        <span>Save</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap break-words">
+                              {c.content}
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -871,6 +1100,53 @@ export default function PostDetail() {
                   className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-xs font-black text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {deleting && <Loader2 size={13} className="animate-spin" />}
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Delete Comment Confirmation Dialog ── */}
+      <AnimatePresence>
+        {commentToDelete && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !deletingComment && setCommentToDelete(null)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm z-[71] rounded-3xl bg-[#111317] border border-white/15 p-5 shadow-2xl space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-black text-white">Delete comment?</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Are you sure you want to delete this comment? This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  disabled={deletingComment}
+                  onClick={() => setCommentToDelete(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingComment}
+                  onClick={handleConfirmDeleteComment}
+                  className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-xs font-black text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {deletingComment && <Loader2 size={13} className="animate-spin" />}
                   Delete
                 </button>
               </div>
