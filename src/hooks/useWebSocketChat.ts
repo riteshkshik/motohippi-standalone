@@ -131,6 +131,22 @@ export function useWebSocketChat(
               if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('motohippi_new_group_message', { detail: data.message }));
               }
+            } else if (data.type === 'message_edited' && data.message) {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('motohippi_message_edited', { detail: data.message }));
+              }
+            } else if (data.type === 'message_deleted') {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('motohippi_message_deleted', { detail: data }));
+              }
+            } else if (data.type === 'group_message_edited' && data.message) {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('motohippi_group_message_edited', { detail: data.message }));
+              }
+            } else if (data.type === 'group_message_deleted') {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('motohippi_group_message_deleted', { detail: data }));
+              }
             } else if (
               data.type === 'new_match_request' ||
               data.type === 'match_request' ||

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   useGetConversations,
   useListMessages,
@@ -28,6 +29,8 @@ import {
   UserPlus,
   ChevronRight,
   CornerUpLeft,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1159,6 +1162,164 @@ function ReplyPreviewBar({
   );
 }
 
+function EditPreviewBar({
+  editTarget,
+  onClear,
+}: {
+  editTarget: { id: number; content: string } | null;
+  onClear: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {editTarget && (
+        <motion.div
+          initial={{ opacity: 0, height: 0, y: 8 }}
+          animate={{ opacity: 1, height: "auto", y: 0 }}
+          exit={{ opacity: 0, height: 0, y: 8 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="overflow-hidden mb-2"
+        >
+          <div className="bg-card/95 border border-primary/30 rounded-2xl px-3 py-2 flex items-center justify-between gap-3 backdrop-blur-md shadow-lg">
+            <div className="flex items-center gap-2.5 overflow-hidden flex-1 border-l-2 border-primary pl-2.5">
+              <Pencil size={15} className="text-primary shrink-0" />
+              <div className="flex flex-col overflow-hidden min-w-0">
+                <span className="text-[11px] font-bold text-primary truncate leading-tight">
+                  Editing Message
+                </span>
+                <span className="text-xs text-muted-foreground truncate mt-0.5 leading-tight">
+                  {editTarget.content}
+                </span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClear}
+              className="h-7 w-7 rounded-full text-muted-foreground hover:text-white hover:bg-white/10 shrink-0 cursor-pointer"
+              title="Cancel edit"
+            >
+              <X size={15} />
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function DeleteMessageModal({
+  isOpen,
+  isDeleting,
+  onClose,
+  onConfirm,
+  isGroup = false,
+}: {
+  isOpen: boolean;
+  isDeleting: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isGroup?: boolean;
+}) {
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !isDeleting && onClose()}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-sm rounded-3xl bg-[#111317] border border-white/15 p-6 shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-base font-black text-white">Delete message?</h3>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                {isGroup
+                  ? "Are you sure you want to delete this message? This action will remove it from the group chat."
+                  : "Are you sure you want to delete this message? This action will remove it from the chat."}
+              </p>
+            </div>
+            <div className="flex gap-2.5 justify-end pt-1">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={onConfirm}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs font-black text-white flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-lg shadow-red-900/30 transition-colors"
+              >
+                {isDeleting && <Loader2 size={13} className="animate-spin" />}
+                Delete
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+}
+
+function ImageLightboxModal({
+  imageUrl,
+  onClose,
+}: {
+  imageUrl: string | null;
+  onClose: () => void;
+}) {
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {imageUrl && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+            <img
+              src={imageUrl}
+              alt="Enlarged preview"
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
+            />
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+}
+
 function QuotedMessageCard({
   replyTo,
   isMe,
@@ -1210,11 +1371,15 @@ function SwipeableMessageRow({
   children,
   onReply,
   onCopy,
+  onEdit,
+  onDelete,
   align = "right",
 }: {
   children: React.ReactNode;
   onReply: () => void;
   onCopy?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   align?: "left" | "right";
 }) {
   const isRight = align === "right";
@@ -1347,6 +1512,36 @@ function SwipeableMessageRow({
                 Copy
               </Button>
             )}
+            {onEdit && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  onEdit();
+                }}
+                className="h-7 px-2.5 rounded-full text-xs font-semibold text-white/90 hover:bg-white/10 flex items-center gap-1.5"
+              >
+                <Pencil size={12} className="text-primary" />
+                Edit
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  onDelete();
+                }}
+                className="h-7 px-2.5 rounded-full text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-1.5"
+              >
+                <Trash2 size={12} />
+                Delete
+              </Button>
+            )}
             <Button
               type="button"
               size="icon"
@@ -1360,18 +1555,42 @@ function SwipeableMessageRow({
         )}
       </AnimatePresence>
 
-      {/* Desktop Hover Quick Action Button (Placed directly to the LEFT of outgoing messages) */}
+      {/* Desktop Hover Quick Action Buttons (Placed directly to the LEFT of outgoing messages) */}
       {isRight && (
-        <div className="hidden md:flex items-center opacity-0 group-hover/row:opacity-100 transition-all duration-150 mr-2 shrink-0">
+        <div className="hidden md:flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all duration-150 mr-2 shrink-0">
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              className="h-7 w-7 rounded-full bg-zinc-800/90 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 shadow-md backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              title="Delete message"
+            >
+              <Trash2 size={12} />
+            </Button>
+          )}
+          {onEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              className="h-7 w-7 rounded-full bg-zinc-800/90 hover:bg-primary/20 text-zinc-400 hover:text-primary border border-white/10 hover:border-primary/30 shadow-md backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              title="Edit message"
+            >
+              <Pencil size={12} />
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={onReply}
-            className="h-8 w-8 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95"
+            className="h-7 w-7 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95 cursor-pointer"
             title="Reply"
           >
-            <CornerUpLeft size={14} />
+            <CornerUpLeft size={13} />
           </Button>
         </div>
       )}
@@ -1424,17 +1643,29 @@ function SwipeableMessageRow({
 
       {/* Desktop Hover Quick Action Button (Placed directly to the RIGHT of incoming messages) */}
       {!isRight && (
-        <div className="hidden md:flex items-center opacity-0 group-hover/row:opacity-100 transition-all duration-150 ml-2 shrink-0">
+        <div className="hidden md:flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-all duration-150 ml-2 shrink-0">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={onReply}
-            className="h-8 w-8 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95"
+            className="h-7 w-7 rounded-full bg-zinc-800/90 hover:bg-primary text-zinc-300 hover:text-black border border-white/20 hover:border-primary shadow-md backdrop-blur-md transition-all active:scale-95 cursor-pointer"
             title="Reply"
           >
-            <CornerUpLeft size={14} />
+            <CornerUpLeft size={13} />
           </Button>
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              className="h-7 w-7 rounded-full bg-zinc-800/90 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 shadow-md backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              title="Delete message"
+            >
+              <Trash2 size={12} />
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -1456,6 +1687,10 @@ function ChatView({
   const [messagesList, setMessagesList] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null);
+  const [editTarget, setEditTarget] = useState<{ id: number; content: string } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<{ id: number } | null>(null);
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1515,6 +1750,126 @@ function ChatView({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesList]);
+
+  // Real-time listener for edited and deleted direct messages
+  useEffect(() => {
+    const handleEdited = (e: any) => {
+      const msg = e.detail;
+      if (msg && msg.conversationId === conversationId) {
+        setMessagesList((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, content: msg.content, isEdited: true } : m
+          )
+        );
+      }
+    };
+
+    const handleDeleted = (e: any) => {
+      const data = e.detail;
+      if (data && data.conversationId === conversationId) {
+        setMessagesList((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    };
+
+    window.addEventListener("motohippi_message_edited", handleEdited);
+    window.addEventListener("motohippi_message_deleted", handleDeleted);
+    return () => {
+      window.removeEventListener("motohippi_message_edited", handleEdited);
+      window.removeEventListener("motohippi_message_deleted", handleDeleted);
+    };
+  }, [conversationId]);
+
+  const handleStartEdit = (msg: any) => {
+    setReplyTarget(null);
+    setEditTarget({ id: msg.id, content: msg.content });
+    setText(msg.content);
+    textInputRef.current?.focus();
+  };
+
+  const handleCancelEdit = () => {
+    setEditTarget(null);
+    setText("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      toast({ title: "Message cannot be empty", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`${API_BASE}/messages/${editTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setMessagesList((prev) =>
+          prev.map((m) =>
+            m.id === updated.id ? { ...m, content: updated.content, isEdited: true } : m
+          )
+        );
+        setEditTarget(null);
+        setText("");
+        toast({ title: "Message edited" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to edit message",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!messageToDelete) return;
+    const msgId = messageToDelete.id;
+    setIsDeletingMessage(true);
+    try {
+      const res = await fetch(`${API_BASE}/messages/${msgId}`, {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        setMessagesList((prev) => prev.filter((m) => m.id !== msgId));
+        setMessageToDelete(null);
+        toast({ title: "Message deleted" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to delete message",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingMessage(false);
+    }
+  };
 
   const sendImageMessage = (s3Url: string) => {
     const sentViaWs = sendMessage(conversationId, s3Url, "image");
@@ -1598,6 +1953,10 @@ function ChatView({
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editTarget) {
+      handleSaveEdit();
+      return;
+    }
     const cleanText = text.trim();
     if (!cleanText) return;
 
@@ -1729,6 +2088,8 @@ function ChatView({
                     }
                   : undefined
               }
+              onEdit={isMe && !isImageMsg ? () => handleStartEdit(msg) : undefined}
+              onDelete={isMe ? () => setMessageToDelete({ id: msg.id }) : undefined}
             >
               <div
                 id={`msg-${msg.id}`}
@@ -1787,6 +2148,9 @@ function ChatView({
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                      {msg.isEdited && (
+                        <span className="italic ml-1 opacity-80">• edited</span>
+                      )}
                     </div>
                   </>
                 )}
@@ -1799,6 +2163,10 @@ function ChatView({
 
       {/* Input Bar */}
       <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <EditPreviewBar
+          editTarget={editTarget}
+          onClear={handleCancelEdit}
+        />
         <ReplyPreviewBar
           replyTarget={replyTarget}
           onClear={() => setReplyTarget(null)}
@@ -1815,9 +2183,9 @@ function ChatView({
             type="button"
             variant="outline"
             size="icon"
-            disabled={isUploadingImage}
+            disabled={isUploadingImage || !!editTarget}
             onClick={() => fileInputRef.current?.click()}
-            className="h-12 w-12 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-white"
+            className="h-12 w-12 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-white disabled:opacity-40"
             title="Send Image (Max 3MB)"
           >
             {isUploadingImage ? (
@@ -1839,52 +2207,45 @@ function ChatView({
             placeholder={
               isUploadingImage
                 ? "Uploading image to S3..."
-                : "Type a message..."
+                : editTarget
+                  ? "Edit your message..."
+                  : "Type a message..."
             }
-            disabled={isUploadingImage}
+            disabled={isUploadingImage || isSavingEdit}
             className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"
           />
           <Button
             type="submit"
-            disabled={!text.trim() || isUploadingImage}
+            disabled={!text.trim() || isUploadingImage || isSavingEdit}
             size="icon"
-            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20 bg-primary text-black font-bold hover:bg-primary/90"
+            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20 bg-primary text-black font-bold hover:bg-primary/90 cursor-pointer"
+            title={editTarget ? "Save edit" : "Send message"}
           >
-            <Send size={18} className="ml-0.5" />
+            {isSavingEdit ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : editTarget ? (
+              <Check size={18} className="stroke-[2.5]" />
+            ) : (
+              <Send size={18} className="ml-0.5" />
+            )}
           </Button>
         </form>
       </div>
 
+      {/* Delete Message Confirmation Dialog */}
+      <DeleteMessageModal
+        isOpen={!!messageToDelete}
+        isDeleting={isDeletingMessage}
+        onClose={() => setMessageToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isGroup={false}
+      />
+
       {/* Fullscreen Image Lightbox Modal */}
-      <AnimatePresence>
-        {lightboxImageUrl && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setLightboxImageUrl(null)}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
-          >
-            <div
-              className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                onClick={() => setLightboxImageUrl(null)}
-                className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <img
-                src={lightboxImageUrl}
-                alt="Enlarged preview"
-                className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ImageLightboxModal
+        imageUrl={lightboxImageUrl}
+        onClose={() => setLightboxImageUrl(null)}
+      />
     </>
   );
 }
@@ -1916,6 +2277,10 @@ function GroupChatView({
   const [searchingRiders, setSearchingRiders] = useState(false);
   const [riderSearchResults, setRiderSearchResults] = useState<any[]>([]);
   const [addingUserId, setAddingUserId] = useState<number | null>(null);
+  const [editTarget, setEditTarget] = useState<{ id: number; content: string } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<{ id: number } | null>(null);
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
@@ -2098,6 +2463,126 @@ function GroupChatView({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messagesList]);
 
+  // Real-time listener for edited and deleted group messages
+  useEffect(() => {
+    const handleGroupEdited = (e: any) => {
+      const msg = e.detail;
+      if (msg && Number(msg.groupId) === Number(groupId)) {
+        setMessagesList((prev) =>
+          prev.map((m) =>
+            m.id === msg.id ? { ...m, content: msg.content, isEdited: true } : m
+          )
+        );
+      }
+    };
+
+    const handleGroupDeleted = (e: any) => {
+      const data = e.detail;
+      if (data && Number(data.groupId) === Number(groupId)) {
+        setMessagesList((prev) => prev.filter((m) => m.id !== data.messageId));
+      }
+    };
+
+    window.addEventListener("motohippi_group_message_edited", handleGroupEdited);
+    window.addEventListener("motohippi_group_message_deleted", handleGroupDeleted);
+    return () => {
+      window.removeEventListener("motohippi_group_message_edited", handleGroupEdited);
+      window.removeEventListener("motohippi_group_message_deleted", handleGroupDeleted);
+    };
+  }, [groupId]);
+
+  const handleStartEdit = (msg: any) => {
+    setReplyTarget(null);
+    setEditTarget({ id: msg.id, content: msg.content });
+    setText(msg.content);
+    textInputRef.current?.focus();
+  };
+
+  const handleCancelEdit = () => {
+    setEditTarget(null);
+    setText("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      toast({ title: "Message cannot be empty", variant: "destructive" });
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`${API_BASE}/groups/${groupId}/messages/${editTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setMessagesList((prev) =>
+          prev.map((m) =>
+            m.id === updated.id ? { ...m, content: updated.content, isEdited: true } : m
+          )
+        );
+        setEditTarget(null);
+        setText("");
+        toast({ title: "Message edited" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to edit message",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!messageToDelete) return;
+    const msgId = messageToDelete.id;
+    setIsDeletingMessage(true);
+    try {
+      const res = await fetch(`${API_BASE}/groups/${groupId}/messages/${msgId}`, {
+        method: "DELETE",
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        setMessagesList((prev) => prev.filter((m) => m.id !== msgId));
+        setMessageToDelete(null);
+        toast({ title: "Message deleted" });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to delete message",
+          description: err.error || "Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Network error",
+        description: "Could not reach server.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingMessage(false);
+    }
+  };
+
   // 5. Send Image
   const handleSendImage = (s3Url: string) => {
     const sentViaWs = sendGroupMessage(groupId, s3Url, "image");
@@ -2185,6 +2670,10 @@ function GroupChatView({
   // 6. Send Text
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
+    if (editTarget) {
+      handleSaveEdit();
+      return;
+    }
     const cleanText = text.trim();
     if (!cleanText) return;
 
@@ -2337,6 +2826,9 @@ function GroupChatView({
                 msg.content.match(/\.(jpeg|jpg|gif|png|webp)/i)));
 
           const isMe = msg.senderId === user?.id;
+          const isGroupOwner = groupDetails?.createdById === user?.id;
+          const canEdit = isMe && !isImageMsg;
+          const canDelete = isMe || isGroupOwner;
 
           return (
             <SwipeableMessageRow
@@ -2364,6 +2856,8 @@ function GroupChatView({
                     }
                   : undefined
               }
+              onEdit={canEdit ? () => handleStartEdit(msg) : undefined}
+              onDelete={canDelete ? () => setMessageToDelete({ id: msg.id }) : undefined}
             >
               <div
                 className={`flex flex-col w-full ${isMe ? "items-end" : "items-start"}`}
@@ -2452,6 +2946,9 @@ function GroupChatView({
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
+                        {msg.isEdited && (
+                          <span className="italic ml-1 opacity-80">• edited</span>
+                        )}
                       </div>
                     </>
                   )}
@@ -2465,6 +2962,10 @@ function GroupChatView({
 
       {/* Input Bar */}
       <div className="p-4 bg-background/85 backdrop-blur-md border-t border-white/5 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <EditPreviewBar
+          editTarget={editTarget}
+          onClear={handleCancelEdit}
+        />
         <ReplyPreviewBar
           replyTarget={replyTarget}
           onClear={() => setReplyTarget(null)}
@@ -2481,9 +2982,9 @@ function GroupChatView({
             type="button"
             variant="outline"
             size="icon"
-            disabled={isUploadingImage}
+            disabled={isUploadingImage || !!editTarget}
             onClick={() => fileInputRef.current?.click()}
-            className="h-12 w-12 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-white"
+            className="h-12 w-12 rounded-full shrink-0 border-white/10 bg-white/5 hover:bg-white/10 text-white disabled:opacity-40"
             title="Share Ride Image (Max 3MB)"
           >
             {isUploadingImage ? (
@@ -2505,32 +3006,43 @@ function GroupChatView({
             placeholder={
               isUploadingImage
                 ? "Uploading to S3..."
-                : `Message ${groupDetails?.name || "group"}...`
+                : editTarget
+                  ? "Edit your message..."
+                  : `Message ${groupDetails?.name || "group"}...`
             }
-            disabled={isUploadingImage}
+            disabled={isUploadingImage || isSavingEdit}
             className="flex-1 bg-card/50 border-white/10 rounded-full h-12 px-4 text-base md:text-sm"
           />
           <Button
             type="submit"
-            disabled={!text.trim() || isUploadingImage}
+            disabled={!text.trim() || isUploadingImage || isSavingEdit}
             size="icon"
-            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20 bg-primary text-black font-bold hover:bg-primary/90"
+            className="h-12 w-12 rounded-full shrink-0 shadow-lg shadow-primary/20 bg-primary text-black font-bold hover:bg-primary/90 cursor-pointer"
+            title={editTarget ? "Save edit" : "Send message"}
           >
-            <Send size={18} className="ml-0.5" />
+            {isSavingEdit ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : editTarget ? (
+              <Check size={18} className="stroke-[2.5]" />
+            ) : (
+              <Send size={18} className="ml-0.5" />
+            )}
           </Button>
         </form>
       </div>
 
       {/* Members Drawer */}
-      <AnimatePresence>
-        {showMembersDrawer && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end"
-            onClick={() => setShowMembersDrawer(false)}
-          >
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showMembersDrawer && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex justify-end"
+                onClick={() => setShowMembersDrawer(false)}
+              >
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -2654,53 +3166,32 @@ function GroupChatView({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
 
       {/* Fullscreen Image Lightbox Modal */}
-      <AnimatePresence>
-        {lightboxImageUrl && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setLightboxImageUrl(null)}
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4"
-          >
-            <div
-              className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                onClick={() => setLightboxImageUrl(null)}
-                className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              >
-                <X size={20} />
-              </button>
-              <img
-                src={lightboxImageUrl}
-                alt="Enlarged preview"
-                className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ImageLightboxModal
+        imageUrl={lightboxImageUrl}
+        onClose={() => setLightboxImageUrl(null)}
+      />
 
       {/* Add Riders Modal */}
-      <AnimatePresence>
-        {showAddMemberModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => {
-              setShowAddMemberModal(false);
-              setSearchRiderQuery("");
-              setRiderSearchResults([]);
-            }}
-          >
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {showAddMemberModal && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
+                onClick={() => {
+                  setShowAddMemberModal(false);
+                  setSearchRiderQuery("");
+                  setRiderSearchResults([]);
+                }}
+              >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -2836,7 +3327,18 @@ function GroupChatView({
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
+
+      {/* Delete Message Confirmation Dialog */}
+      <DeleteMessageModal
+        isOpen={!!messageToDelete}
+        isDeleting={isDeletingMessage}
+        onClose={() => setMessageToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isGroup={true}
+      />
     </>
   );
 }
